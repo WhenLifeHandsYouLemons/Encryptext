@@ -14,10 +14,48 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import colorchooser
 import webbrowser
-
+from cryptography.fernet import Fernet
+import time
 
 # text.config(font="Helvetica")
 
+settings = []
+with open("C:/Users/2005s/Documents/Visual Studio Code/Python/Tkinter/Custom-Text-Editor/Settings.txt", "r") as f:
+    content = f.read()
+    lines = content.splitlines()
+    for line in lines:
+        settings.append(line)
+
+first_time_opening_app = settings[0]
+encryption_key = settings[1]
+
+if first_time_opening_app == "firstTimeOpeningApp=True":
+    print("\nFirst time, eh?")
+    # time.sleep(2)
+    # print("\nDon't worry, I'll set up a few things before you can get started.")
+    # time.sleep(4)
+    # print("\nThis will only happen the first time you open this program.")
+    # time.sleep(3)
+    # print("\nHelpful hint: If you lose this .exe file, then you basically lose access to all your files because they are encrpyted automatically.")
+    # time.sleep(10)
+    # print("\nAnd the encryption key is stored somewhere that only this exact program will know where to find it.")
+    # time.sleep(8)
+    # print("\nTry not to lose it on the first day, yeah?")
+    # time.sleep(1)
+    # print("\nAlmost done!")
+    key = Fernet.generate_key()
+    key = key.decode("utf-8")
+    settings.pop(1)
+    settings.pop(0)
+    settings.insert(0, key)
+    settings.insert(0, "firstTimeOpeningApp=False")
+    time.sleep(5)
+else:
+    print("\nAh, welcome back.")
+    key = encryption_key
+    time.sleep(2)
+
+fernet = Fernet(key)
 
 save_location = ""
 font_size = 11
@@ -25,8 +63,27 @@ font_type = "Arial"
 max_font_size = 100
 min_font_size = 3
 used_tags = []
+formatting = []
+format_start_string = "H6ETuTu9od"
 
 root = Tk("Text Editor")
+if settings[2] == "debugMode=On":
+    debug = Tk("Debug Windows")
+    debug.grid()
+    undostate0 = Text(debug, state=NORMAL, font=(font_type, font_size, "normal"))
+    undostate1 = Text(debug, state=NORMAL, font=(font_type, font_size, "normal"))
+    redostate0 = Text(debug, state=NORMAL, font=(font_type, font_size, "normal"))
+    redostate1 = Text(debug, state=NORMAL, font=(font_type, font_size, "normal"))
+    undostate0.grid(row=0, column=0)
+    undostate1.grid(row=0, column=1)
+    redostate0.grid(row=1, column=0)
+    redostate1.grid(row=1, column=1)
+else:
+    undostate0 = Text(root, state=NORMAL, font=(font_type, font_size, "normal"))
+    undostate1 = Text(root, state=NORMAL, font=(font_type, font_size, "normal"))
+    redostate0 = Text(root, state=NORMAL, font=(font_type, font_size, "normal"))
+    redostate1 = Text(root, state=NORMAL, font=(font_type, font_size, "normal"))
+
 root.geometry("500x500")
 root.wm_title("Custom Text Editor Interface Edition")
 
@@ -56,6 +113,9 @@ def get_file_name(Event=None):
 get_file_name()
 
 def quit_app(Event=None):
+    save = "\n".join(settings)
+    with open("C:/Users/2005s/Documents/Visual Studio Code/Python/Tkinter/Custom-Text-Editor/Settings.txt", "w") as f:
+        f.write(save)
     if len(textbox.get("1.0", END)) != 1:
         confirm_exit_box = messagebox.askyesno("Quit Program","Are you sure you want to quit? Any unsaved changes will be lost forever.\n\nClicking 'No' will automatically save the file before exiting the editor.\nClicking 'Yes' will close the editor without saving.")
         if confirm_exit_box == 1:
@@ -98,6 +158,7 @@ def save_as_file(Event=None):
     save_location = filedialog.asksaveasfilename(filetypes=files, defaultextension=files)
     if save_location != "":
         file1 = open(save_location, "w+")
+        # encrypted_text_to_save_as = fernet.encrypt(text_to_save_as.encode())
         file1.write(text_to_save_as)
         file1.close()
 
@@ -212,11 +273,169 @@ def paste_event(Event=None):
 def cut_event(Event=None):
     textbox.event_generate("<<Cut>>")
 
+def track_changes(Event=None):
+    get_current_text = undostate0.get("1.0", END)
+    undostate1.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        undostate1.insert(END,line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # undostate1.insert(END, get_current_text)
+
+    get_current_text = textbox.get("1.0", END)
+    undostate0.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        undostate0.insert(END,line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # undostate0.insert(END, get_current_text)
+
+    redostate0.delete("1.0", END)
+    redostate1.delete("1.0", END)
+    print("Change to document has been tracked.")
+    print(undostate1.get("1.0", END))
+
+root.bind_all("<,>", track_changes)
+root.bind_all("<.>", track_changes)
+root.bind_all("<?>", track_changes)
+root.bind_all("<'>", track_changes)
+root.bind_all('<">', track_changes)
+root.bind_all("<!>", track_changes)
+root.bind_all("<(>", track_changes)
+root.bind_all("<)>", track_changes)
+root.bind_all("<[>", track_changes)
+root.bind_all("<]>", track_changes)
+root.bind_all("<{>", track_changes)
+root.bind_all("<}>", track_changes)
+root.bind_all("</>", track_changes)
+
 def undo_event(Event=None):
-    print("")
+    lists = []
+    lists.append(textbox.get("1.0", END))
+    print(lists)
+    get_current_text = redostate0.get("1.0", END)
+    redostate1.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        redostate1.insert(END, line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # redostate1.insert(END, get_current_text)
+
+    get_current_text = textbox.get("1.0", END)
+    redostate0.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        redostate0.insert(END, line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # redostate0.insert(END, get_current_text)
+
+    get_current_text = undostate0.get("1.0", END)
+    textbox.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        textbox.insert(END, line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            break
+    # textbox.insert(END, get_current_text)
+
+    get_current_text = undostate1.get("1.0", END)
+    undostate0.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        undostate0.insert(END, line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # undostate0.insert(END, get_current_text)
 
 def redo_event(Event=None):
-    print("")
+    get_current_text = undostate0.get("1.0", END)
+    undostate1.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        undostate1.insert(END, line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # undostate1.insert(END, get_current_text)
+
+    get_current_text = textbox.get("1.0", END)
+    undostate0.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        undostate0.insert(END, line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # undostate0.insert(END, get_current_text)
+
+    get_current_text = redostate0.get("1.0", END)
+    textbox.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        textbox.insert(END, line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # textbox.insert(END, get_current_text)
+
+    get_current_text = redostate1.get("1.0", END)
+    redostate0.delete("1.0", END)
+    total_lines = 0
+    for line in get_current_text:
+        total_lines = total_lines + 1
+    current_line = 0
+    for line in get_current_text:
+        redostate0.insert(END, line)
+        current_line = current_line + 1
+        if current_line == total_lines - 1:
+            print("Skipped a line!")
+            break
+    # redostate0.insert(END, get_current_text)
 
 def select_all(Event=None):
     textbox.event_generate("<<SelectAll>>")
@@ -275,6 +494,9 @@ def italic_text_style(Event=None):
     textbox.tag_config(current_tag, font=(font_type, font_size, "italic"))
     used_tags.append(i)
 
+def save_with_format(Event=None):
+    print()
+
 menubar = Menu(root)
 filemenu = Menu(menubar, tearoff=0)
 filemenu.add_command(label="New File", accelerator="Ctrl+N", command=new_file)
@@ -304,14 +526,10 @@ editmenu.add_command(label="Redo", accelerator="Ctrl+Y", command=redo_event)
 root.bind_all("<Control-y>", redo_event)
 editmenu.add_separator()
 editmenu.add_command(label="Cut", accelerator="Ctrl+X", command=cut_event)
-root.bind_all("<Control-x>", cut_event)
 editmenu.add_command(label="Copy",  accelerator="Ctrl+C", command=copy_event)
-root.bind_all("<Control-c>", copy_event)
 editmenu.add_command(label="Paste", accelerator="Ctrl+V", command=paste_event)
-root.bind_all("<Control-v>", paste_event)
 editmenu.add_separator()
 editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=select_all)
-root.bind_all("<Control-a>", select_all)
 editmenu.add_command(label="Deselect All", accelerator="Alt+A", command=deselect_all)
 root.bind_all("<Alt-a>", deselect_all)
 editmenu.add_separator()

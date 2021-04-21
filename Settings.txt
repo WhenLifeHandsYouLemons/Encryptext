@@ -1,0 +1,3 @@
+firstTimeOpeningApp=True
+encryptionKey=None
+debugMode=Off
