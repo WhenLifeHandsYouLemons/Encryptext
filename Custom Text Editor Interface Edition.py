@@ -222,6 +222,7 @@ def increase_font(Event=None):
     if font_size == max_font_size:
         messagebox.showerror("Error", "Font size cannot go higher than 100. Please change the max_font_size variable to increase the limit.")
     else:
+        textbox
         font_size = font_size + 1
         textbox.config(font=(font_type, font_size))
 
@@ -239,7 +240,7 @@ def decrease_font(Event=None):
 def specific_size_font(Event=None):
     print()
 
-def change_text_colour():
+def change_text_colour(Event=None):
     colour_code = colorchooser.askcolor(title ="Choose a colour")
     colour_code = colour_code[-1]
     start_selection = textbox.index("sel.first")
