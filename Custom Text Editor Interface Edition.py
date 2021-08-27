@@ -19,6 +19,7 @@ import time
 
 # text.config(font="Helvetica")
 
+# The first line is first_time_opening_app, second is encryption_key, third is debug_mode
 settings = []
 with open("C:/Users/2005s/Documents/Visual Studio Code/Python/Tkinter/Custom-Text-Editor/Settings.txt", "r") as f:
     content = f.read()
@@ -28,8 +29,9 @@ with open("C:/Users/2005s/Documents/Visual Studio Code/Python/Tkinter/Custom-Tex
 
 first_time_opening_app = settings[0]
 encryption_key = settings[1]
+debug_mode = settings[2]
 
-if first_time_opening_app == "firstTimeOpeningApp=True":
+if first_time_opening_app == "True":
     print("\nFirst time, eh?")
     # time.sleep(2)
     # print("\nDon't worry, I'll set up a few things before you can get started.")
@@ -38,23 +40,24 @@ if first_time_opening_app == "firstTimeOpeningApp=True":
     # time.sleep(3)
     # print("\nHelpful hint: If you lose this .exe file, then you basically lose access to all your files because they are encrpyted automatically.")
     # time.sleep(10)
-    # print("\nAnd the encryption key is stored somewhere that only this exact program will know where to find it.")
-    # time.sleep(8)
-    # print("\nTry not to lose it on the first day, yeah?")
-    # time.sleep(1)
     # print("\nAlmost done!")
+    # Generates a key to encodes the file
     key = Fernet.generate_key()
     key = key.decode("utf-8")
+    if debug_mode == "On":
+        print(key)
+        print(settings)
     settings.pop(1)
     settings.pop(0)
-    settings.insert(0, key)
-    settings.insert(0, "firstTimeOpeningApp=False")
+    settings.insert(0, f"{key}")
+    settings.insert(0, "False")
     time.sleep(5)
 else:
-    print("\nAh, welcome back.")
+    print("\nWelcome back.")
     key = encryption_key
     time.sleep(2)
 
+# This initialises the key to encode and decode
 fernet = Fernet(key)
 
 save_location = ""
@@ -66,8 +69,16 @@ used_tags = []
 formatting = []
 format_start_string = "H6ETuTu9od"
 
+supported_file_types = [("Custom Text Editor Interface Edition Files", "*.cteie"),
+                        ("Text Document", "*.txt"),
+                        ("Python Files", "*.py"),
+                        ("HTML Files", "*.html"),
+                        ("Cascading Style Sheets Files", "*.css"),
+                        ("MD Files", "*.md"),
+                        ("All Files", "*.*")]
+
 root = Tk("Text Editor")
-if settings[2] == "debugMode=On":
+if debug_mode == "On":
     debug = Tk("Debug Windows")
     debug.grid()
     undostate0 = Text(debug, state=NORMAL, font=(font_type, font_size, "normal"))
@@ -85,6 +96,9 @@ else:
     redostate1 = Text(root, state=NORMAL, font=(font_type, font_size, "normal"))
 
 root.geometry("500x500")
+# if first_time_opening_app == "True":
+#     
+# else:
 root.wm_title("Custom Text Editor Interface Edition")
 
 title = StringVar()
@@ -138,51 +152,72 @@ def save_file(Event=None):
     if save_location != "":
         text_to_save = textbox.get("1.0", END)
         file1 = open(save_location, "w+")
-        file1.write(text_to_save)
+        encrypted_text_to_save = fernet.encrypt(text_to_save.encode())
+        encrypted_text_to_save = str(encrypted_text_to_save)
+        encrypted_text_to_save = encrypted_text_to_save.split("'")
+        encrypted_text_to_save = encrypted_text_to_save[1]
+        if debug_mode == "On":
+            print(encrypted_text_to_save)
+        file1.write(encrypted_text_to_save)
         file1.close()
+        print("File saved.")
     else:
-        # messagebox.showerror("Error: Save location not initialised","Please use the Save As function to save the file for the first time.\nOnce you use the Save As function for this file, you will not need to use the Save As function for this file.")
         save_as_file()
-    print("File saved.")
 
 def save_as_file(Event=None):
     global textbox
     text_to_save_as = textbox.get("1.0", END)
-    files = [("Custom Text Editor Interface Edition Files", "*.cteie"),
-             ("Text Document", "*.txt"),
-             ("Python Files", "*.py"),
-             ("HTML Files", "*.html"),
-             ("Cascading Style Sheets Files", "*.css"),
-             ("All Files", "*.*")]
+    files = supported_file_types
     global save_location
     save_location = filedialog.asksaveasfilename(filetypes=files, defaultextension=files)
     if save_location != "":
         file1 = open(save_location, "w+")
-        # encrypted_text_to_save_as = fernet.encrypt(text_to_save_as.encode())
-        file1.write(text_to_save_as)
+        encrypted_text_to_save_as = fernet.encrypt(text_to_save_as.encode())
+        encrypted_text_to_save_as = str(encrypted_text_to_save_as)
+        encrypted_text_to_save_as = encrypted_text_to_save_as.split("'")
+        encrypted_text_to_save_as = encrypted_text_to_save_as[1]
+        if debug_mode == "On":
+            print(encrypted_text_to_save_as)
+        file1.write(encrypted_text_to_save_as)
         file1.close()
+        print("File saved.")
 
 def open_file(Event=None):
     try:
         global save_location
-        files = [("Custom Text Editor Interface Edition Files", "*.cteie"),
-                 ("Text Document", "*.txt"),
-                 ("Python Files", "*.py"),
-                 ("HTML Files", "*.html"),
-                 ("Cascading Style Sheets Files", "*.css"),
-                 ("All Files", "*.*")]
+        files = supported_file_types
         save_location = filedialog.askopenfilename(title="Select file",filetypes=files)
         if save_location != "":
+            infile = ""
             infile = open(save_location,"r")
+            if debug_mode == "On":
+                print(infile)
+            separated_location = save_location.split("/")
+            separated_file_name = separated_location[-1].split(".")
+            file_extension = separated_file_name[1]
+            if debug_mode == "On":
+                print(file_extension)
+            if file_extension == "cteie":
+                for line in infile:
+                    file_content = line.encode('utf-8')
+                    file_content = fernet.decrypt(file_content).decode()
+                infile.close()
+                infile = file_content
+                if debug_mode == "On":
+                    print(infile)
             textbox.config(state=NORMAL)
             textbox.delete("1.0",END)
-            for line in infile:
-                textbox.insert(END,line)
-            infile.close()
+            if file_extension == "cteie":
+                for line in file_content:
+                    textbox.insert(END,line)
+            else:
+                for line in infile:
+                    textbox.insert(END,line)
+                infile.close()
         get_file_name()
         print("Opened file for editing.")
     except Exception:
-        messagebox.showerror("Error Opening File", "File format is not supported.")
+        messagebox.showerror("Error Opening File", f"Access denied.\n\nHINT\nUse the program that you wrote this file on to open it correctly.")
 
 def new_file(Event=None):
     if len(textbox.get("1.0", END)) != 1:
@@ -222,12 +257,25 @@ def increase_font(Event=None):
     if font_size == max_font_size:
         messagebox.showerror("Error", "Font size cannot go higher than 100. Please change the max_font_size variable to increase the limit.")
     else:
-        textbox
         font_size = font_size + 1
-        textbox.config(font=(font_type, font_size))
+        start_selection = textbox.index("sel.first")
+        end_selection = textbox.index("sel.last")
+        not_valid = True
+        i = 0
+        while not_valid == True:
+            if len(used_tags) == 0:
+                not_valid = False
+            elif used_tags[-1] >= i:
+                i = i + 1
+            else:
+                not_valid = False
+        current_tag = f"selection{i}"
+        textbox.tag_add(current_tag, start_selection, end_selection)
+        textbox.tag_config(current_tag, font=(font_type, font_size))
+        used_tags.append(i)
 
-    # textbox.tag_add("start", "1.0", END)
-    # textbox.tag_config("start", background="lime green", font=("Helvetica", 50, "italic"))
+    # textbox.tag_add("example_tag_name", "1.0", END)
+    # textbox.tag_config("example_tag_name", background="lime green", font=("Helvetica", 50, "italic"))
 
 def decrease_font(Event=None):
     global font_size
@@ -235,7 +283,22 @@ def decrease_font(Event=None):
         messagebox.showerror("Error", "Font size cannot go lower than 3. Please change the min_font_size variable to decrease the limit.")
     else:
         font_size = font_size - 1
-        textbox.config(font=(font_type, font_size))
+        start_selection = textbox.index("sel.first")
+        end_selection = textbox.index("sel.last")
+        not_valid = True
+        i = 0
+        while not_valid == True:
+            if len(used_tags) == 0:
+                not_valid = False
+            elif used_tags[-1] >= i:
+                i = i + 1
+            else:
+                not_valid = False
+        current_tag = f"selection{i}"
+        textbox.tag_add(current_tag, start_selection, end_selection)
+        textbox.tag_config(current_tag, font=(font_type, font_size))
+        used_tags.append(i)
+        # textbox.config(font=(font_type, font_size))
 
 def specific_size_font(Event=None):
     print()

@@ -1,3 +1,3 @@
-firstTimeOpeningApp=True
-encryptionKey=None
-debugMode=Off
+False
+bJLJB-dmfRBti4Z1eLoFLLIFZaqvoxKUf09Aq51c-FY=
+Off
