@@ -5,6 +5,7 @@ Twitter - https://twitter.com/LemonsHandYou
 Instagram - https://www.instagram.com/whenlifehandsyoulemons1/
 Latest Release - https://github.com/WhenLifeHandsYouLemons/Custom-Text-Editor/releases
 """
+
 from tkinter import *
 # from tkinter.filedialog import askopenfilename
 # from tkinter.filedialog import asksaveasfilename

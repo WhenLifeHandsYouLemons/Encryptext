@@ -1,10 +1,10 @@
 import shutil
-from past.builtins.misc import execfile
+import os
 
 tries = 5
 
 settings = []
-with open("C:/Users/2005s/Documents/Visual Studio Code/Python/Tkinter/Custom-Text-Editor/Settings.txt", "r") as f:
+with open("/home/sooraj/Desktop/Python/Tkinter/Custom-Text-Editor/Settings.txt", "r") as f:
     content = f.read()
     lines = content.splitlines()
     for line in lines:
@@ -13,8 +13,10 @@ with open("C:/Users/2005s/Documents/Visual Studio Code/Python/Tkinter/Custom-Tex
 if settings[0] == "firstTimeOpeningApp=False":
     while tries != 0:
         password = input("\nWhat is the password? ")
+        # if password == "bJLJB-dmfRBti4Z1eLoFLLIFZaqvoxKUf09Aq51c-FY=":
         if password == "password":
-            execfile("C:/Users/2005s/Documents/Visual Studio Code/Python/Tkinter/Custom-Text-Editor/Custom Text Editor Interface Edition.py")
+            os.system("python3 'Custom Text Editor Interface Edition.py'")
+            # execfile("Custom Text Editor Interface Edition.py")
         else:
             print("\nWrong password!")
             print(f"You have {tries - 1} tries left.")
