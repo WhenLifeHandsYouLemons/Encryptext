@@ -1,4 +1,4 @@
-# Custom Text Editor
+# Encryptext
 
 Latest Release - https://github.com/WhenLifeHandsYouLemons/Custom-Text-Editor/releases
 
