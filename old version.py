@@ -1,11 +1,3 @@
-"""
-Made By - Sooraj Sannabhadti
-GitHub - https://github.com/WhenLifeHandsYouLemons
-Twitter - https://twitter.com/LemonsHandYou
-Instagram - https://www.instagram.com/whenlifehandsyoulemons1/
-Latest Release - https://github.com/WhenLifeHandsYouLemons/Custom-Text-Editor/releases
-"""
-
 from tkinter import *
 # from tkinter.filedialog import askopenfilename
 # from tkinter.filedialog import asksaveasfilename
@@ -16,13 +8,12 @@ from tkinter import messagebox
 from tkinter import colorchooser
 import webbrowser
 from cryptography.fernet import Fernet
-import time
 
 # text.config(font="Helvetica")
 
 # The first line is first_time_opening_app, second is encryption_key, third is debug_mode
 settings = []
-with open("C:/Users/2005s/Documents/Visual Studio Code/Python/Tkinter/Custom-Text-Editor/Settings.txt", "r") as f:
+with open("C:/Users/User/Documents/GitHub/Encryptext/Settings.txt", "r") as f:
     content = f.read()
     lines = content.splitlines()
     for line in lines:
@@ -52,11 +43,9 @@ if first_time_opening_app == "True":
     settings.pop(0)
     settings.insert(0, f"{key}")
     settings.insert(0, "False")
-    time.sleep(5)
 else:
     print("\nWelcome back.")
     key = encryption_key
-    time.sleep(2)
 
 # This initialises the key to encode and decode
 fernet = Fernet(key)
@@ -64,8 +53,8 @@ fernet = Fernet(key)
 save_location = ""
 font_size = 11
 font_type = "Arial"
-max_font_size = 100
-min_font_size = 3
+max_font_size = 400
+min_font_size = 6
 used_tags = []
 formatting = []
 format_start_string = "H6ETuTu9od"
@@ -96,15 +85,9 @@ else:
     redostate0 = Text(root, state=NORMAL, font=(font_type, font_size, "normal"))
     redostate1 = Text(root, state=NORMAL, font=(font_type, font_size, "normal"))
 
-root.geometry("500x500")
-# if first_time_opening_app == "True":
-#     
-# else:
-root.wm_title("Custom Text Editor Interface Edition")
-
 title = StringVar()
 title.set("")
-title_of_file = Label(textvariable=title, font=("Arial", 15, "bold"))
+title_of_file = Label(textvariable=title, font=("Arial", 15, "bold"), justify='center')
 title_of_file.pack(side=TOP, fill=X)
 
 textbox = Text(root, state=NORMAL, font=(font_type, font_size, "normal"))
@@ -115,17 +98,6 @@ scroll_bar_vertical.config(command=textbox.yview)
 
 textbox.config(yscrollcommand=scroll_bar_vertical.set)
 textbox.pack(side=BOTTOM, fill=BOTH, expand=1)
-
-def get_file_name(Event=None):
-    if save_location != "":
-        separated_location = save_location.split("/")
-        separated_file_name = separated_location[-1].split(".")
-        file_name = separated_file_name[0]
-        title.set(file_name)
-    else:
-        title.set("Untitled")
-
-get_file_name()
 
 def quit_app(Event=None):
     save = "\n".join(settings)
@@ -182,53 +154,6 @@ def save_as_file(Event=None):
         file1.write(encrypted_text_to_save_as)
         file1.close()
         print("File saved.")
-
-def open_file(Event=None):
-    try:
-        global save_location
-        files = supported_file_types
-        save_location = filedialog.askopenfilename(title="Select file",filetypes=files)
-        if save_location != "":
-            infile = ""
-            infile = open(save_location,"r")
-            if debug_mode == "On":
-                print(infile)
-            separated_location = save_location.split("/")
-            separated_file_name = separated_location[-1].split(".")
-            file_extension = separated_file_name[1]
-            if debug_mode == "On":
-                print(file_extension)
-            if file_extension == "cteie":
-                for line in infile:
-                    file_content = line.encode('utf-8')
-                    file_content = fernet.decrypt(file_content).decode()
-                infile.close()
-                infile = file_content
-                if debug_mode == "On":
-                    print(infile)
-            textbox.config(state=NORMAL)
-            textbox.delete("1.0",END)
-            if file_extension == "cteie":
-                for line in file_content:
-                    textbox.insert(END,line)
-            else:
-                for line in infile:
-                    textbox.insert(END,line)
-                infile.close()
-        get_file_name()
-        print("Opened file for editing.")
-    except Exception:
-        messagebox.showerror("Error Opening File", f"Access denied.\n\nHINT\nUse the program that you wrote this file on to open it correctly.")
-
-def new_file(Event=None):
-    if len(textbox.get("1.0", END)) != 1:
-        confirm_exit_box = messagebox.askyesno("New File","Any unsaved changes will be lost forever.\nClicking 'No' will automatically save the file before exiting the editor.")
-    global save_location
-    save_location = ""
-    textbox.config(state=NORMAL)
-    textbox.delete("1.0",END)
-    print("Created new file.")
-    get_file_name()
 
 def view_file(Event=None):
     try:
@@ -328,15 +253,6 @@ def documentation(Event=None):
 
 def about_menu(Event=None):
     messagebox.showinfo("About Custom Text Editor Interface Edition","A custom text editor made for a fun side project. Comes with a terminal version and an encryptor which adds an extra layer of security by asking for a password before showing the text editor.\n\nCreated by Sooraj.S")
-
-def copy_event(Event=None):
-    textbox.event_generate("<<Copy>>")
-
-def paste_event(Event=None):
-    textbox.event_generate("<<Paste>>")
-
-def cut_event(Event=None):
-    textbox.event_generate("<<Cut>>")
 
 def track_changes(Event=None):
     get_current_text = undostate0.get("1.0", END)
@@ -562,78 +478,6 @@ def italic_text_style(Event=None):
 def save_with_format(Event=None):
     print()
 
-menubar = Menu(root)
-filemenu = Menu(menubar, tearoff=0)
-filemenu.add_command(label="New File", accelerator="Ctrl+N", command=new_file)
-root.bind_all("<Control-n>", new_file)
-filemenu.add_command(label="Open...", accelerator="Ctrl+O", command=open_file)
-root.bind_all("<Control-o>", open_file)
-filemenu.add_command(label="View File", command=view_file)
-filemenu.add_separator()
-filemenu.add_command(label="Save", accelerator="Ctrl+S", command=save_file)
-root.bind_all("<Control-s>", save_file)
-filemenu.add_command(label="Save As...", accelerator="Alt+S", command=save_as_file)
-root.bind_all("<Alt-s>", save_as_file)
-filemenu.add_separator()
-filemenu.add_command(label="Edit Mode",  accelerator="Alt+E", command=edit_mode)
-root.bind_all("<Alt-e>", edit_mode)
-filemenu.add_command(label="View Mode", accelerator="Alt+V", command=view_mode)
-root.bind_all("<Alt-v>", view_mode)
-filemenu.add_separator()
-filemenu.add_command(label="Exit", accelerator="Ctrl+W", command=quit_app)
-root.bind_all("<Control-w>", quit_app)
-menubar.add_cascade(label="File", menu=filemenu)
-
-editmenu = Menu(menubar, tearoff=0)
-editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo_event)
-root.bind_all("<Control-z>", undo_event)
-editmenu.add_command(label="Redo", accelerator="Ctrl+Y", command=redo_event)
-root.bind_all("<Control-y>", redo_event)
-editmenu.add_separator()
-editmenu.add_command(label="Cut", accelerator="Ctrl+X", command=cut_event)
-editmenu.add_command(label="Copy",  accelerator="Ctrl+C", command=copy_event)
-editmenu.add_command(label="Paste", accelerator="Ctrl+V", command=paste_event)
-editmenu.add_separator()
-editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=select_all)
-editmenu.add_command(label="Deselect All", accelerator="Alt+A", command=deselect_all)
-root.bind_all("<Alt-a>", deselect_all)
-editmenu.add_separator()
-editmenu.add_command(label="Edit Preferences")
-menubar.add_cascade(label="Edit", menu=editmenu)
-
-formatmenu = Menu(menubar, tearoff=0)
-
-textfontmenu = Menu(formatmenu, tearoff=0)
-textfontmenu.add_command(label="Arial")
-formatmenu.add_cascade(label="Font", menu=textfontmenu)
-
-textsizemenu = Menu(formatmenu, tearoff=0)
-textsizemenu.add_command(label="3")
-textsizemenu.add_command(label="Increase Font Size", accelerator="Alt+.", command=increase_font)
-root.bind_all("<Alt-.>", increase_font)
-textsizemenu.add_command(label="Decrease Font Size", accelerator="Alt+,", command=decrease_font)
-root.bind_all("<Alt-,>", decrease_font)
-formatmenu.add_cascade(label="Text Size", menu=textsizemenu)
-
-formatmenu.add_command(label="Text Colour", command=change_text_colour)
-
-textstylemenu = Menu(formatmenu, tearoff=0)
-textstylemenu.add_command(label="Normal", command=normal_text_style)
-textstylemenu.add_command(label="Bold", accelerator= "Ctrl+B", command=bold_text_style)
-root.bind_all("<Control-b>", bold_text_style)
-textstylemenu.add_command(label="Italic", command=italic_text_style)
-formatmenu.add_cascade(label="Text Style", menu=textstylemenu)
-
-menubar.add_cascade(label="Format", menu=formatmenu)
-
-helpmenu = Menu(menubar, tearoff=0)
-helpmenu.add_command(label="About CTEIE", command=about_menu)
-helpmenu.add_command(label="Documentation", command=documentation)
-menubar.add_cascade(label="Help", menu=helpmenu)
-
-root.config(menu=menubar)
 
 root.protocol("WM_DELETE_WINDOW", quit_app)
-
-
 root.mainloop()
