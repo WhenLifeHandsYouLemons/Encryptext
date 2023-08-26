@@ -1,4 +1,0 @@
-This is some text! There can be no localised formatting for this sadly...
-
-Here is a new line of text!
-Does this work well?

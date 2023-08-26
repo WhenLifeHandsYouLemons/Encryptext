@@ -9,7 +9,6 @@ from tkinter.ttk import *
 import webbrowser
 from cryptography.fernet import Fernet
 
-
 """
 Window Settings
 """
@@ -21,19 +20,21 @@ root.title("Encryptext")
 # Resize the window (manually resizable too)
 root.geometry("800x500")
 
-
 """
 Variables
 """
 save_location = ""
+
 font_size = 11
 font_type = "Arial"
 max_font_size = 96
 min_font_size = 8
+
 # Uses a zero width character to determine where formatting starts and stops
 format_item_separator = "​" # There's 1 character here
 format_separator = "​​" # There's 2 characters here
 format_string = "​​​" # There's 3 characters here
+
 supported_file_types = [("Encryptext Files", "*.etx"),
                         ("Text Document", "*.txt"),
                         ("Python Files", "*.py"),
@@ -42,9 +43,11 @@ supported_file_types = [("Encryptext Files", "*.etx"),
                         ("Markdown Files", "*.md"),
                         ("All Files", "*.*")
                         ]
+
 # TODO: Make a new program that creates an encryption key and edits this file
 # TODO: It should then use pyinstaller to make the exe for the user
 # TODO: This allows the encryption to be truly secure as it would be in the machine code of the program file rather than in a text file stored with the program file.
+test_key = Fernet.generate_key()
 encrypt_key = b'bZ3NDhpMPq_X1I_C3TFmOqEQ9uwSisk12pjCuN5u90E='
 fernet = Fernet(encrypt_key)
 
@@ -57,7 +60,7 @@ current_version = 1
 max_history = 50
 
 tags = []
-
+tag_no = 0
 
 """
 Functions
@@ -74,6 +77,7 @@ def quit_app(Event=None):
 def open_file(Event=None, current=False):
     # Make save_location global to change it for the whole program
     global save_location
+    global tags
 
     # Check if the textbox is empty
     if len(textbox.get("1.0", END)) != 1 and current == False:
@@ -111,17 +115,43 @@ def open_file(Event=None, current=False):
                     file = bytes(file.read(), "utf-8")
                     # Decrypt the file
                     file = fernet.decrypt(file).decode()
+                    # Convert to string and remove the b'' from the string
+                    file = str(file)
 
-                    # TODO: Look through the text and get all the formatting
-                    # TODO: Add all the formatting to the text and add it to the tags list
+                    # Look through the text and get all the formatting
+                    file = file.split(format_string)
+                    formats = file[0].split(format_separator)
+                    text = file[1]
 
                     # Write the file contents to the textbox
-                    textbox.insert(END, file)
+                    textbox.insert(END, text[:-1])
+
+                    # Add all the formatting to the text and add it to the tags list
+                    if formats[0] != "":
+                        for i in range(len(formats)):
+                            format = formats[i].split(format_item_separator)
+
+                            textbox.tag_add(format[0], format[1], format[2])
+
+                            if "colour" in format[0]:
+                                textbox.tag_config(format[0], foreground=format[3])
+                            elif "size" in format[0]:
+                                textbox.tag_config(format[0], font=(format[3], int(format[4])))
+                            else:
+                                # Get format type
+                                if "bold" in format[0]:
+                                    textbox.tag_config(format[0], font=(format[3], int(format[4]), "bold"))
+                                elif "italic" in format[0]:
+                                    textbox.tag_config(format[0], font=(format[3], int(format[4]), "italic"))
+                                elif "normal" in format[0]:
+                                    textbox.tag_config(format[0], font=(format[3], int(format[4]), "normal"))
+
+                            tags.append(formats[i])
                 except Exception as e:
                     messagebox.showerror("Error Opening File", "Access denied.\nUse the Encryptext file that you used to write this file to open it correctly.")
             else:
                 # Write the file contents to the textbox
-                textbox.insert(END, file.read())
+                textbox.insert(END, file.read()[:-1])
 
                 # Close the file
                 file.close()
@@ -317,36 +347,46 @@ def documentation(Event=None):
     webbrowser.open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
 
 def bold_text_style(Event=None):
+    global tag_no
     # Get the position of current selection
     start_selection = textbox.index("sel.first")
     end_selection = textbox.index("sel.last")
 
     # Create a tag
-    textbox.tag_add("bold", start_selection, end_selection)
-    textbox.tag_config("bold", font=(font_type, font_size, "bold"))
-    tags.append("​".join([start_selection, end_selection, font_type, font_size, "bold"]))
+    textbox.tag_add(f"bold{tag_no}", start_selection, end_selection)
+    textbox.tag_config(f"bold{tag_no}", font=(font_type, font_size, "bold"))
+    tags.append("​".join([f"bold{tag_no}", start_selection, end_selection, font_type, str(font_size)]))
+
+    tag_no += 1
 
 def italic_text_style(Event=None):
+    global tag_no
     # Get the position of current selection
     start_selection = textbox.index("sel.first")
     end_selection = textbox.index("sel.last")
 
     # Create a tag
-    textbox.tag_add("italic", start_selection, end_selection)
-    textbox.tag_config("italic", font=(font_type, font_size, "italic"))
-    tags.append("​".join([start_selection, end_selection, font_type, font_size, "italic"]))
+    textbox.tag_add(f"italic{tag_no}", start_selection, end_selection)
+    textbox.tag_config(f"italic{tag_no}", font=(font_type, font_size, "italic"))
+    tags.append("​".join([f"italic{tag_no}", start_selection, end_selection, font_type, str(font_size)]))
+
+    tag_no += 1
 
 def normal_text_style(Event=None):
+    global tag_no
     # Get the position of current selection
     start_selection = textbox.index("sel.first")
     end_selection = textbox.index("sel.last")
 
     # Create a tag
-    textbox.tag_add("normal", start_selection, end_selection)
-    textbox.tag_config("normal", font=(font_type, font_size, "normal"))
-    tags.append("​".join([start_selection, end_selection, font_type, font_size, "normal"]))
+    textbox.tag_add(f"normal{tag_no}", start_selection, end_selection)
+    textbox.tag_config(f"normal{tag_no}", font=(font_type, font_size, "normal"))
+    tags.append("​".join([f"normal{tag_no}", start_selection, end_selection, font_type, str(font_size)]))
+
+    tag_no += 1
 
 def text_colour_change(Event=None):
+    global tag_no
     colour_code = colorchooser.askcolor(title ="Choose a colour")
     colour_code = colour_code[-1]
 
@@ -355,38 +395,77 @@ def text_colour_change(Event=None):
     end_selection = textbox.index("sel.last")
 
     # Create a tag
-    textbox.tag_add("colour", start_selection, end_selection)
-    textbox.tag_config("colour", foreground="red")
-    tags.append("​".join([start_selection, end_selection, "red", font_type, font_size, "colour"]))
+    textbox.tag_add(f"colour{tag_no}", start_selection, end_selection)
+    textbox.tag_config(f"colour{tag_no}", foreground=colour_code)
+
+    # Check if there are any old tags with the same selection and format type
+    for i in range(len(tags)):
+        tag = tags[i].split("​")
+        if tag[1] == start_selection and tag[2] == end_selection and tag[3] == colour_code and tag[4] == font_type and tag[0].startswith("colour"):
+            # Remove the old tag
+            textbox.tag_delete(tag[0])
+            # Remove the old tag from the list
+            tags.pop(i)
+
+    tags.append("​".join([f"colour{tag_no}", start_selection, end_selection, colour_code, font_type, str(font_size)]))
+
+    tag_no += 1
 
 def increase_font(Event=None):
+    global tag_no
     global font_size
     if font_size == max_font_size:
         messagebox.showerror("Error", "Font size cannot go higher than 96.")
     else:
-        font_size = font_size + 1
+        font_size += 1
+        size = font_size
         start_selection = textbox.index("sel.first")
         end_selection = textbox.index("sel.last")
 
         # Create a tag
-        textbox.tag_add("font_size", start_selection, end_selection)
-        textbox.tag_config("font_size", font=(font_type, font_size))
-        tags.append("​".join([start_selection, end_selection, font_type, font_size, "font_size"]))
+        textbox.tag_add(f"size{tag_no}", start_selection, end_selection)
+        textbox.tag_config(f"size{tag_no}", font=(font_type, size))
+
+        # Check if there are any old tags with the same selection and format type
+        for i in range(len(tags)):
+            tag = tags[i].split("​")
+            if tag[1] == start_selection and tag[2] == end_selection and tag[3] == font_type and tag[0].startswith("size"):
+                # Remove the old tag
+                textbox.tag_delete(tag[0])
+                # Remove the old tag from the list
+                tags.pop(i)
+
+        tags.append("​".join([f"size{tag_no}", start_selection, end_selection, font_type, str(size)]))
+
+    tag_no += 1
 
 def decrease_font(Event=None):
+    global tag_no
     global font_size
     if font_size == min_font_size:
         messagebox.showerror("Error", "Font size cannot go lower than 8.")
     else:
-        font_size = font_size - 1
+        font_size -= 1
+        size = font_size
         start_selection = textbox.index("sel.first")
         end_selection = textbox.index("sel.last")
 
         # Create a tag
-        textbox.tag_add("font_size", start_selection, end_selection)
-        textbox.tag_config("font_size", font=(font_type, font_size))
-        tags.append("​".join([start_selection, end_selection, font_type, font_size, "font_size"]))
+        textbox.tag_add(f"size{tag_no}", start_selection, end_selection)
+        textbox.tag_config(f"size{tag_no}", font=(font_type, size))
 
+        # Check if there are any old tags with the same selection and format type
+        for i in range(len(tags)):
+            tag = tags[i].split("​")
+            if tag[1] == start_selection and tag[2] == end_selection and tag[3] == font_type and tag[0].startswith("size"):
+                # Remove the old tag
+                textbox.tag_delete(tag[0])
+                # Remove the old tag from the list
+                tags.pop(i)
+
+        tags.append("​".join([f"size{tag_no}", start_selection, end_selection, font_type, str(size)]))
+
+    tag_no += 1
 
 """
 Menu Bar
@@ -416,8 +495,8 @@ filemenu.add_separator()
 filemenu.add_command(label="Save", accelerator="Ctrl+S", command=save_file)
 root.bind_all("<Control-s>", save_file)
 
-filemenu.add_command(label="Save As", accelerator="Alt+S", command=save_as)
-root.bind_all("<Alt-s>", save_as)
+filemenu.add_command(label="Save As", accelerator="Ctrl+Shift+S", command=save_as)
+root.bind_all("<Control-S>", save_as)
 
 filemenu.add_separator()
 
@@ -436,8 +515,8 @@ root.bind_all("<Control-w>", quit_app)
 editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo)
 root.bind_all("<Control-z>", undo)
 
-editmenu.add_command(label="Redo", accelerator="Ctrl+Y", command=redo)
-root.bind_all("<Control-y>", redo)
+editmenu.add_command(label="Redo", accelerator="Ctrl+Shift+Z", command=redo)
+root.bind_all("<Control-Z>", redo)
 
 editmenu.add_separator()
 
@@ -451,8 +530,8 @@ editmenu.add_separator()
 
 editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=select_all)
 
-editmenu.add_command(label="Deselect All", accelerator="Alt+A", command=deselect_all)
-root.bind_all("<Alt-a>", deselect_all)
+editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselect_all)
+root.bind_all("<Control-A>", deselect_all)
 
 editmenu.add_separator()
 
@@ -461,22 +540,23 @@ editmenu.add_command(label="Edit Preferences")
 # Format menu items
 textfontmenu.add_command(label="Arial")
 
-textsizemenu.add_command(label="Increase Font Size", accelerator="Alt+.", command=increase_font)
-root.bind_all("<Alt-.>", increase_font)
+textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift+-", command=increase_font)
+root.bind_all("<Control-+>", increase_font)
 
-textsizemenu.add_command(label="Decrease Font Size", accelerator="Alt+,", command=decrease_font)
-root.bind_all("<Alt-,>", decrease_font)
+textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift++", command=decrease_font)
+root.bind_all("<Control-_>", decrease_font)
 
-formatmenu.add_command(label="Text Colour", command=text_colour_change)
+formatmenu.add_command(label="Text Colour", accelerator="Alt+C", command=text_colour_change)
+root.bind_all("<Alt-c>", text_colour_change)
 
 textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=normal_text_style)
 root.bind_all("<Alt-n>", normal_text_style)
 
-textstylemenu.add_command(label="Bold", accelerator= "Ctrl+B", command=bold_text_style)
-root.bind_all("<Control-b>", bold_text_style)
+textstylemenu.add_command(label="Bold", accelerator= "Alt+B", command=bold_text_style)
+root.bind_all("<Alt-b>", bold_text_style)
 
-textstylemenu.add_command(label="Italic", accelerator= "Ctrl+I", command=italic_text_style)
-root.bind_all("<Control-i>", bold_text_style)
+textstylemenu.add_command(label="Italic", accelerator= "Alt+I", command=italic_text_style)
+root.bind_all("<Alt-i>", bold_text_style)
 
 helpmenu.add_command(label="About Encryptext", command=about_menu)
 
@@ -510,7 +590,6 @@ root.bind_all("<{>", track_changes)
 root.bind_all("<}>", track_changes)
 root.bind_all("</>", track_changes)
 
-
 """
 Window Items
 """
@@ -527,7 +606,6 @@ scroll_bar_vertical.config(command=textbox.yview)
 
 textbox.config(yscrollcommand=scroll_bar_vertical.set)
 textbox.pack(side=BOTTOM, fill=BOTH, expand=1)
-
 
 """
 Window Display
