@@ -42,6 +42,9 @@ supported_file_types = [("Encryptext Files", "*.etx"),
                         ("Markdown Files", "*.md"),
                         ("All Files", "*.*")
                         ]
+# TODO: Make a new program that creates an encryption key and edits this file
+# TODO: It should then use pyinstaller to make the exe for the user
+# TODO: This allows the encryption to be truly secure as it would be in the machine code of the program file rather than in a text file stored with the program file.
 encrypt_key = b'bZ3NDhpMPq_X1I_C3TFmOqEQ9uwSisk12pjCuN5u90E='
 fernet = Fernet(encrypt_key)
 
@@ -109,6 +112,9 @@ def open_file(Event=None, current=False):
                     # Decrypt the file
                     file = fernet.decrypt(file).decode()
 
+                    # TODO: Look through the text and get all the formatting
+                    # TODO: Add all the formatting to the text and add it to the tags list
+
                     # Write the file contents to the textbox
                     textbox.insert(END, file)
                 except Exception as e:
@@ -152,7 +158,8 @@ def save_file(Event=None):
 
         # If the file is a .etx file, encrypt it
         if save_location.split(".")[-1] == "etx":
-            text = fernet.encrypt(text.encode())
+            full_text = "​​​".join(["​​".join(tags), text])
+            text = fernet.encrypt(full_text.encode())
 
             # Convert the text to a string
             text = str(text)
@@ -177,7 +184,7 @@ def save_as(Event=None):
         # If the file is a .etx file, encrypt it
         if save_location.split(".")[-1] == "etx":
             full_text = "​​​".join(["​​".join(tags), text])
-            text = fernet.encrypt(text.encode())
+            text = fernet.encrypt(full_text.encode())
 
             # Convert the text to a string
             text = str(text)
