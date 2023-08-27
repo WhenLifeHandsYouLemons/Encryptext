@@ -3,7 +3,6 @@ from cryptography.fernet import Fernet
 
 print("Starting installer...")
 print("Please wait...")
-print("Creating encryption key...")
 
 # Open the Encryptext.py file and read it into a variable
 file = open("Encryptext.pyw", "r", encoding="utf8")
@@ -30,7 +29,7 @@ file.write(text)
 file.close()
 
 print("Encryption key created!")
-print("Creating custom program...")
+print("Creating custom program...\n\n")
 
 # Creates an executable file
 os.system("pyinstaller --onefile --windowed --log-level ERROR --icon=app_icon.ico Encryptext-User.pyw")
@@ -39,7 +38,7 @@ os.system("move dist\\Encryptext-User.exe Encryptext-User.exe")
 # Rename the exe to "Encryptext (User).exe"
 os.system("ren Encryptext-User.exe \"Encryptext.exe\"")
 
-print("Created program!")
+print("\n\nCreated program!")
 print("Cleaning up...")
 
 # Removes the "dist" folder
@@ -55,4 +54,4 @@ os.system("del Encryptext.pyw")
 # Remove the app_icon.ico file
 os.system("del app_icon.ico")
 
-input("Completed! Press enter to finish setup...")
+input("\nCompleted! Press enter to finish setup...")

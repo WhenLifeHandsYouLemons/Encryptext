@@ -19,6 +19,8 @@ root = Tk("Encryptext")
 root.title("Encryptext")
 # Resize the window (manually resizable too)
 root.geometry("800x500")
+# Change the icon
+root.iconbitmap("app_icon.ico")
 
 """
 Variables
@@ -44,7 +46,6 @@ supported_file_types = [("Encryptext Files", "*.etx"),
                         ("All Files", "*.*")
                         ]
 
-test_key = Fernet.generate_key()
 # ENCRYPTION KEY HERE
 encrypt_key = b''
 # ENCRYPTION KEY HERE
@@ -340,7 +341,7 @@ def deselect_all(Event=None):
     textbox.event_generate("<<SelectNone>>")
 
 def about_menu(Event=None):
-    messagebox.showinfo("About Encryptext", "Encryptext is a text editor that allows you to encrypt your files securely.\n\n Free for everyone. Forever. ❤")
+    messagebox.showinfo("About Encryptext", "Encryptext can do what Notepad does, and more. You can edit, format, and encrypt files securely, while also editing regular files with ease.\n\n Free for everyone. Forever. ❤")
 
 def documentation(Event=None):
     webbrowser.open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
@@ -559,7 +560,7 @@ root.bind_all("<Alt-i>", bold_text_style)
 
 helpmenu.add_command(label="About Encryptext", command=about_menu)
 
-helpmenu.add_command(label="Documentation", command=documentation)
+helpmenu.add_command(label="Encryptext on GitHub", command=documentation)
 
 # Add to menubar
 menubar.add_cascade(label="File", menu=filemenu)
