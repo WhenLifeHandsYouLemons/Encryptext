@@ -51,10 +51,8 @@ encrypt_key = b''
 # ENCRYPTION KEY HERE
 fernet = Fernet(encrypt_key)
 
-history = []
-# Add atleast 3 versions history
-for i in range(3):
-    history.append("")
+# Have atleast 3 versions of history
+history = ["", "", ""]
 # Set the current history version to 1 (centered)
 current_version = 1
 max_history = 50
@@ -76,8 +74,7 @@ def quit_app(Event=None):
 
 def open_file(Event=None, current=False):
     # Make save_location global to change it for the whole program
-    global save_location
-    global tags
+    global save_location, tags, history, current_version
 
     # Check if the textbox is empty
     if len(textbox.get("1.0", END)) != 1 and current == False:
@@ -107,6 +104,10 @@ def open_file(Event=None, current=False):
 
             # Clear the textbox
             textbox.delete("1.0", END)
+
+            # Clear the history
+            history = ["", "", ""]
+            current_version = 1
 
             # If the file is a .etx file, decrypt it
             if file_extension == "etx":
@@ -157,7 +158,7 @@ def open_file(Event=None, current=False):
                 file.close()
 
 def new_file(Event=None):
-    global save_location
+    global save_location, history, current_version
 
     # Check if the textbox is empty
     if len(textbox.get("1.0", END)) != 1:
@@ -166,6 +167,10 @@ def new_file(Event=None):
             save_location = ""
             textbox.config(state=NORMAL)
             textbox.delete("1.0", END)
+
+            history = ["", "", ""]
+            current_version = 1
+
             title.set("Untitled")
         else:
             pass
@@ -173,6 +178,10 @@ def new_file(Event=None):
         save_location = ""
         textbox.config(state=NORMAL)
         textbox.delete("1.0", END)
+
+        history = ["", "", ""]
+        current_version = 1
+
         title.set("Untitled")
 
 def save_file(Event=None):
