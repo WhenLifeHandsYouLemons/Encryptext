@@ -44,11 +44,10 @@ supported_file_types = [("Encryptext Files", "*.etx"),
                         ("All Files", "*.*")
                         ]
 
-# TODO: Make a new program that creates an encryption key and edits this file
-# TODO: It should then use pyinstaller to make the exe for the user
-# TODO: This allows the encryption to be truly secure as it would be in the machine code of the program file rather than in a text file stored with the program file.
 test_key = Fernet.generate_key()
-encrypt_key = b'bZ3NDhpMPq_X1I_C3TFmOqEQ9uwSisk12pjCuN5u90E='
+# ENCRYPTION KEY HERE
+encrypt_key = b''
+# ENCRYPTION KEY HERE
 fernet = Fernet(encrypt_key)
 
 history = []
