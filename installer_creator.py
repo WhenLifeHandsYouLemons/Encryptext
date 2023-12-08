@@ -1,7 +1,7 @@
 import os
 
 # Creates an executable file
-os.system("pyinstaller --onefile --log-level ERROR --icon=installer_icon.ico installer.py")
+os.system('pyinstaller --onefile --log-level CRITICAL --icon="installer_icon.ico" installer.py')
 # Moves the exe out of the dist folder
 os.system("move dist\\installer.exe installer.exe")
 

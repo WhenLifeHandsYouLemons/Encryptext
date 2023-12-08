@@ -1,6 +1,8 @@
 """
 Imports
 """
+import sys
+from os.path import abspath, join
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
@@ -8,6 +10,14 @@ from tkinter import colorchooser
 from tkinter.ttk import *
 import webbrowser
 from cryptography.fernet import Fernet
+
+# Used for getting files when using one-file mode .exe format
+def getTrueFilename(filename):
+    try:
+        base = sys._MEIPASS
+    except Exception:
+        base = abspath('.')
+    return join(base, filename)
 
 """
 Window Settings
@@ -20,7 +30,7 @@ root.title("Encryptext")
 # Resize the window (manually resizable too)
 root.geometry("800x500")
 # Change the icon
-root.iconbitmap("app_icon.ico")
+root.iconbitmap(getTrueFilename("app_icon.ico"))
 
 """
 Variables
@@ -42,6 +52,8 @@ supported_file_types = [("Encryptext Files", "*.etx"),
                         ("Python Files", "*.py"),
                         ("HTML Files", "*.html"),
                         ("CSS Files", "*.css"),
+                        ("JavaScript Files", "*.js"),
+                        ("JSON Files", "*.json"),
                         ("Markdown Files", "*.md"),
                         ("All Files", "*.*")
                         ]
@@ -549,10 +561,10 @@ editmenu.add_command(label="Edit Preferences")
 # Format menu items
 textfontmenu.add_command(label="Arial")
 
-textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift+-", command=increase_font)
+textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increase_font)
 root.bind_all("<Control-+>", increase_font)
 
-textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift++", command=decrease_font)
+textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decrease_font)
 root.bind_all("<Control-_>", decrease_font)
 
 formatmenu.add_command(label="Text Colour", accelerator="Alt+C", command=text_colour_change)
@@ -565,7 +577,7 @@ textstylemenu.add_command(label="Bold", accelerator= "Alt+B", command=bold_text_
 root.bind_all("<Alt-b>", bold_text_style)
 
 textstylemenu.add_command(label="Italic", accelerator= "Alt+I", command=italic_text_style)
-root.bind_all("<Alt-i>", bold_text_style)
+root.bind_all("<Alt-i>", italic_text_style)
 
 helpmenu.add_command(label="About Encryptext", command=about_menu)
 
