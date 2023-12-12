@@ -35,6 +35,8 @@ root.iconbitmap(getTrueFilename("app_icon.ico"))
 """
 Variables
 """
+debug = False
+
 save_location = ""
 
 font_size = 11
@@ -126,8 +128,11 @@ def open_file(Event=None, current=False):
                 try:
                     # Convert the text to bytes
                     file = bytes(file.read(), "utf-8")
-                    # Decrypt the file
-                    file = fernet.decrypt(file).decode()
+                    if not debug:
+                        # Decrypt the file
+                        file = fernet.decrypt(file).decode()
+                    else:
+                        file = file.decode()
                     # Convert to string and remove the b'' from the string
                     file = str(file)
 
@@ -210,7 +215,10 @@ def save_file(Event=None):
         # If the file is a .etx file, encrypt it
         if save_location.split(".")[-1] == "etx":
             full_text = "​​​".join(["​​".join(tags), text])
-            text = fernet.encrypt(full_text.encode())
+            if not debug:
+                text = fernet.encrypt(full_text.encode())
+            else:
+                text = full_text.encode()
 
             # Convert the text to a string
             text = str(text)
@@ -235,7 +243,10 @@ def save_as(Event=None):
         # If the file is a .etx file, encrypt it
         if save_location.split(".")[-1] == "etx":
             full_text = "​​​".join(["​​".join(tags), text])
-            text = fernet.encrypt(full_text.encode())
+            if not debug:
+                text = fernet.encrypt(full_text.encode())
+            else:
+                text = full_text.encode()
 
             # Convert the text to a string
             text = str(text)
