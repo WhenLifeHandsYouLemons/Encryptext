@@ -1,18 +1,31 @@
-import os
-from cryptography.fernet import Fernet
+from os import devnull, system
+from os.path import abspath, join
+from sys import _MEIPASS
+from time import sleep
+from subprocess import check_call
+from cryptography.fernet import Fernet as F
+import threading as t
 
-print("Starting installer...")
+print("\nStarting installer...")
 print("Please wait...")
 
+# Used for getting files when using one-file mode .exe format
+def getTrueFilename(filename):
+    try:
+        base = _MEIPASS
+    except Exception:
+        base = abspath(".")
+    return join(base, filename)
+
 # Open the Encryptext.py file and read it into a variable
-file = open("Encryptext.pyw", "r", encoding="utf8")
+file = open(getTrueFilename("Encryptext.pyw"), "r", encoding="utf8")
 file = file.read()
 
 # Find where the encryption key is stored in the file
 file = file.split("# ENCRYPTION KEY HERE")
 
 # Create a key and remove the b'' from the string
-key = str(Fernet.generate_key()).split("'")[1]
+key = str(F.generate_key()).split("'")[1]
 
 # Add the key to the file
 key_line = file[1]
@@ -21,10 +34,10 @@ key_line[1] = key
 key_line = "'".join(key_line)
 file[1] = key_line
 
-text = "# ENCRYPTION KEY HERE".join(file)
+text = "\n".join(file)
 
 # Write the file back to the Encryptext.py file
-file = open("Encryptext-User.pyw", "w", encoding="utf8")
+file = open(getTrueFilename("Encryptext-User.pyw"), "w", encoding="utf8")
 file.write(text)
 file.close()
 
@@ -32,26 +45,72 @@ print("Encryption key created!")
 print("Creating custom program...\n\n")
 
 # Creates an executable file
-# https://stackoverflow.com/a/72523249
-# https://stackoverflow.com/a/13790741
-os.system('pyinstaller --onefile --clean --windowed --log-level ERROR --icon="app_icon.ico" --add-data "app_icon.ico;." --name Encryptext Encryptext-User.pyw')
-# Moves the exe out of the dist folder
-os.system("move dist\\Encryptext.exe Encryptext.exe")
+def appCreation():
+    file_path = getTrueFilename("Encryptext-User.pyw")
+    icon_path = getTrueFilename("app_icon.ico")
+    # https://stackoverflow.com/a/72523249
+    # https://stackoverflow.com/a/13790741
+    # https://stackoverflow.com/a/8529412
+    check_call(["pyinstaller",
+                "--onefile",
+                "--clean",
+                "--windowed",
+                "--log-level",
+                "CRITICAL",
+                "--icon",
+                icon_path,
+                "--add-data",
+                f"{icon_path};.",
+                "--name",
+                "Encryptext",
+                file_path
+               ],
+               shell=True,
+               stdout=open(devnull, 'wb'),
+               stderr=open(devnull, 'wb'))
 
-print("\n\nCreated program!")
+# https://stackoverflow.com/a/34325723
+# Print iterations progress
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
+
+# Start thread to create app
+app_thread = t.Thread(target=appCreation)
+app_thread.start()
+
+# Show a progress bar while app is compiling
+l = 100
+i = 0
+printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50)
+while i < l-25:
+    sleep(0.5)
+    i += 1
+    printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50, printEnd='')
+
+app_thread.join()
+
+while i < l:
+    sleep(0.05)
+    i += 1
+    printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50, printEnd='')
+
+# Moves the exe out of the dist folder
+system("move dist\\Encryptext.exe Encryptext.exe >nul")
+
+print("\r\n\nCreated program!")
 print("Cleaning up...")
 
 # Removes the "dist" folder
-os.system("rmdir /s /q dist")
+system("rmdir /s /q dist")
 # Removes the "build" folder
-os.system("rmdir /s /q build")
+system("rmdir /s /q build")
 # Removes the "Encryptext-User.spec" file
-os.system("del Encryptext.spec")
-# Remove the "Encryptext-User.pyw" file
-os.system("del Encryptext-User.pyw")
-# Remove the "Encryptext.pyw" file
-os.system("del Encryptext.pyw")
-# Remove the app_icon.ico file
-os.system("del app_icon.ico")
+system("del Encryptext.spec")
 
 input("\nCompleted! Press enter to finish setup...")

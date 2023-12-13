@@ -1,5 +1,0 @@
-To install Encryptext:
-
-1. Run the "installer.exe" file.
-2. Follow the instructions on the screen.
-3. Run the "Encryptext.exe" file to get started!

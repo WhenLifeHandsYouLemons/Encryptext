@@ -1,13 +1,26 @@
-import os
+from os import system
+import PyInstaller.__main__
 
 # Creates an executable file
-os.system('pyinstaller --onefile --log-level CRITICAL --icon="installer_icon.ico" installer.py')
+PyInstaller.__main__.run([
+    'installer.py',
+    '--onefile',
+    '--clean',
+    '--log-level',
+    'CRITICAL',
+    '--icon',
+    'installer_icon.ico',
+    '--add-data',
+    'app_icon.ico;.',
+    '--add-data',
+    'Encryptext.pyw;.'
+])
 # Moves the exe out of the dist folder
-os.system("move dist\\installer.exe installer.exe")
+system("move dist\\installer.exe installer.exe")
 
 # Removes the "build" folder
-os.system("rmdir /s /q build")
+system("rmdir /s /q build")
 # Removes the "installer.spec" file
-os.system("del installer.spec")
+system("del installer.spec")
 # Removes the "dist" folder
-os.system("rmdir /s /q dist")
+system("rmdir /s /q dist")
