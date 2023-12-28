@@ -11,7 +11,6 @@ import traceback
 import webbrowser
 from cryptography.fernet import Fernet
 
-
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
     try:
@@ -46,10 +45,10 @@ font_type = "Arial"
 max_font_size = 96
 min_font_size = 8
 
-# Uses random 30 character strings to determine where formatting starts and stops
-format_item_separator = "15df8933cab3df434da7d0f13ad54a"
-format_separator = "97391e7d85dc6407899136965491b5"
-format_string = "e2af2ac41b58bf99587e5a078e4ba3"
+# Uses random random-length strings of characters to determine where formatting starts and stops# FORMAT ITEM SEPARATOR HERE
+format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
+format_separator = ''# FORMAT SEPARATOR HERE# FORMAT STRING HERE
+format_string = ''# FORMAT STRING HERE
 
 supported_file_types = [
     ("Encryptext", "*.etx"),
@@ -65,10 +64,9 @@ supported_file_types = [
     ("Log File", "*.log"),
     ("All Files", "*.*"),
 ]
+# ENCRYPTION KEY HERE
+encrypt_key = b''# ENCRYPTION KEY HERE
 
-# ENCRYPTION KEY HERE
-encrypt_key = b''
-# ENCRYPTION KEY HERE
 if debug:
     encrypt_key = Fernet.generate_key()
 fernet = Fernet(encrypt_key)
@@ -168,7 +166,7 @@ def openFile(Event=None, current=False):
                     else:
                         file = file.decode()
 
-                    # Look through the text and get all the formatting
+                    # Split the formatting and the visible text
                     file = file.split(format_string)
 
                     # Go through the formats and remove duplicates

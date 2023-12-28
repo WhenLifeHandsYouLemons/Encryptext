@@ -4,6 +4,8 @@ from sys import _MEIPASS
 from time import sleep
 from subprocess import check_call
 from cryptography.fernet import Fernet as F
+from random import choice, randint
+from string import ascii_letters, digits
 import threading as t
 
 print("\nStarting installer...")
@@ -34,14 +36,62 @@ key_line[1] = key
 key_line = "'".join(key_line)
 file[1] = key_line
 
-text = "\n".join(file)
+text = "".join(file)
+
+print("Encryption key created!")
+
+possible_characters = ascii_letters + digits
+
+# Find where the format item separator string is stored in the file
+file = text.split("# FORMAT ITEM SEPARATOR HERE")
+
+# Create a format item separator string
+format_item_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+# Add the format item separator string to the file
+key_line = file[1]
+key_line = key_line.split("'")
+key_line[1] = format_item_separator
+key_line = "'".join(key_line)
+file[1] = key_line
+
+text = "".join(file)
+
+# Find where the format separator string is stored in the file
+file = text.split("# FORMAT SEPARATOR HERE")
+
+# Create a format separator string
+format_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+
+# Add the format separator string to the file
+key_line = file[1]
+key_line = key_line.split("'")
+key_line[1] = format_separator
+key_line = "'".join(key_line)
+file[1] = key_line
+
+text = "".join(file)
+
+# Find where the format string is stored in the file
+file = text.split("# FORMAT STRING HERE")
+
+# Create a format string
+format_string = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+
+# Add the format string to the file
+key_line = file[1]
+key_line = key_line.split("'")
+key_line[1] = format_string
+key_line = "'".join(key_line)
+file[1] = key_line
+
+text = "".join(file)
 
 # Write the file back to the Encryptext.py file
 file = open(getTrueFilename("Encryptext-User.pyw"), "w", encoding="utf8")
 file.write(text)
 file.close()
 
-print("Encryption key created!")
+print("Format strings created!")
 print("Creating custom program...\n\n")
 
 # Creates an executable file
