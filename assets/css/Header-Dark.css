@@ -1,0 +1,84 @@
+.header-dark {
+  background: url(mountain_bg.jpg) #444;
+  background-size: cover;
+  padding-bottom: 80px;
+}
+
+@media (min-width:768px) {
+  .header-dark {
+    padding-bottom: 120px;
+  }
+}
+
+.header-dark .navbar {
+  background: transparent;
+  color: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+
+@media (min-width:768px) {
+  .header-dark .navbar {
+    padding-top: .75rem;
+    padding-bottom: .75rem;
+  }
+}
+
+.header-dark .navbar .navbar-brand {
+  font-weight: bold;
+  color: inherit;
+}
+
+.header-dark .navbar .navbar-brand:hover {
+  color: #f0f0f0;
+}
+
+.header-dark .navbar .navbar-toggler {
+  border-color: #FFFFFF;
+}
+
+.header-dark .navbar .navbar-toggler:hover, .header-dark .navbar-toggler:focus {
+  background: none;
+}
+
+.header-dark .navbar .navbar-toggler {
+  color: #FFFFFF;
+}
+
+.header-dark .navbar .navbar-collapse, .header-dark .navbar form {
+  border-color: #636363;
+}
+
+@media (min-width: 992px) {
+  .header-dark .navbar.navbar .navbar-nav .nav-link {
+    padding-left: 1.2rem;
+    padding-right: 1.2rem;
+  }
+}
+
+.header-dark .hero {
+  margin-top: 60px;
+}
+
+@media (min-width:768px) {
+  .header-dark .hero {
+    margin-top: 20px;
+  }
+}
+
+.header-dark .hero h1 {
+  color: #fff;
+  font-family: 'Bitter', serif;
+  font-size: 40px;
+  margin-top: 20px;
+  margin-bottom: 80px;
+}
+
+@media (min-width:768px) {
+  .header-dark .hero h1 {
+    margin-bottom: 50px;
+    line-height: 1.5;
+  }
+}
+
