@@ -8,9 +8,8 @@ Encryptext can do what Notepad does, and more. You can edit, format, and encrypt
 
 ## Installation
 
-1. Go to "<https://github.com/WhenLifeHandsYouLemons/Encryptext/releases>" to download the "`Encryptext.zip`" file from the latest release.
-2. Extract the zip file.
-3. Run the "`installer.exe`" file.
+1. Go to "<https://github.com/WhenLifeHandsYouLemons/Encryptext/releases>" to download the "`encryptext_installer_v-----_--bit.exe`" file from the latest release. (The `-` is replaced by the version number and 32- or 64-bit version)
+3. Run the downloaded file.
 4. Follow the instructions on the screen.
 5. Run the "`Encryptext.exe`" file to get started!
 
