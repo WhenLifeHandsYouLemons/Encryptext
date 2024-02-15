@@ -30,6 +30,7 @@ root = tk.Tk("Encryptext")
 
 def previewWindowCreation(hidden=False, add_frame=True):
     global md_preview_window, frame
+
     md_preview_window = tk.Tk("Preview")
     if hidden:
         md_preview_window.withdraw()
@@ -39,12 +40,10 @@ def previewWindowCreation(hidden=False, add_frame=True):
 
     if add_frame:
         frame = HtmlFrame(md_preview_window, messages_enabled=False)
-        frame.load_html(textbox.get("1.0", tk.END))
+        frame.load_html(markdown.markdown(textbox.get("1.0", tk.END)))
         frame.pack(fill="both", expand=True)
         md_preview_window.bind_all("<Control-e>", updatePreview)
         md_preview_window.bind_all("<Alt-P>", closePreview)
-
-previewWindowCreation(hidden=True, add_frame=False)
 
 # Rename the window
 root.title("Encryptext")
@@ -59,6 +58,7 @@ Variables
 debug = False
 
 save_location = ""
+file_extension = ""
 
 font_size = 11
 font_type = "Arial"
@@ -127,15 +127,21 @@ def quitApp(Event=None):
     if len(textbox.get("1.0", tk.END)) != 1:
         quit_confirm = messagebox.askyesno("Quit", "Quit Encryptext?\n\nAny unsaved changes will be lost.")
         if quit_confirm:
-            root.destroy()
-            md_preview_window.destroy()
+            try:
+                md_preview_window.destroy()
+            finally:
+                root.destroy()
+                sys.exit()
     else:
-        root.destroy()
-        md_preview_window.destroy()
+        try:
+            md_preview_window.destroy()
+        finally:
+            root.destroy()
+            sys.exit()
 
 def openFile(Event=None, current=False):
     # Make save_location global to change it for the whole program
-    global save_location, tags, history, current_version, tag_no
+    global save_location, tags, history, current_version, tag_no, file_extension
 
     # Reset tag number
     tag_no = 0
@@ -271,10 +277,12 @@ def openFile(Event=None, current=False):
                 # Close the file
                 file.close()
             if file_extension == "md":
+                global md_preview_window
                 try:
                     md_preview_window.deiconify()
+                    updatePreview()
                 except:
-                    md_preview_window = tk.Tk("Preview")
+                    previewWindowCreation()
 
 def newFile(Event=None):
     global save_location, history, current_version
@@ -418,8 +426,14 @@ def redo(Event=None):
         textbox.insert(tk.END, history[current_version])
 
 def updatePreview(Event=None):
-    # Update the preview
-    frame.load_html(markdown.markdown(textbox.get("1.0", tk.END)))
+    try:
+        # Update the preview
+        frame.load_html(markdown.markdown(textbox.get("1.0", tk.END)))
+    except:
+        # Only update it if it's markdown or none
+        if file_extension == "md":
+            # If the preview window was opened manually
+            previewWindowCreation()
 
 def trackChanges(Event=None):
     global history
@@ -588,6 +602,29 @@ def decrease_font(Event=None):
     tag_no += 1
 
 """
+Window Items
+"""
+title = tk.StringVar()
+title.set("Untitled")
+title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center")
+title_of_file.pack(side=tk.TOP, fill=tk.X)
+
+textbox = tk.Text(root, state=tk.NORMAL, font=(font_type, font_size, "normal"))
+
+scroll_bar_vertical = tk.Scrollbar(root, orient=tk.VERTICAL)
+scroll_bar_vertical.pack(side=tk.RIGHT, fill=tk.Y)
+scroll_bar_vertical.config(command=textbox.yview)
+
+textbox.config(yscrollcommand=scroll_bar_vertical.set)
+textbox.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+
+# To make it more seamless
+# The preview window was the focused one before
+root.focus_force()
+
+previewWindowCreation(hidden=True)
+
+"""
 Menu Bar
 """
 menubar = tk.Menu(root, tearoff=0)
@@ -724,26 +761,6 @@ root.bind_all("<{>", trackChanges)
 root.bind_all("<}>", trackChanges)
 root.bind_all("</>", trackChanges)
 
-"""
-Window Items
-"""
-title = tk.StringVar()
-title.set("Untitled")
-title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center")
-title_of_file.pack(side=tk.TOP, fill=tk.X)
-
-textbox = tk.Text(root, state=tk.NORMAL, font=(font_type, font_size, "normal"))
-
-scroll_bar_vertical = tk.Scrollbar(root, orient=tk.VERTICAL)
-scroll_bar_vertical.pack(side=tk.RIGHT, fill=tk.Y)
-scroll_bar_vertical.config(command=textbox.yview)
-
-textbox.config(yscrollcommand=scroll_bar_vertical.set)
-textbox.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
-
-# To make it more seamless
-# The preview window was the focused one before
-root.focus_force()
 
 """
 Window Display
