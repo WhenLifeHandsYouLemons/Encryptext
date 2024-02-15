@@ -436,25 +436,25 @@ def updatePreview(Event=None):
             previewWindowCreation()
 
 def trackChanges(Event=None):
-    global history
-    global current_version
+    if Event.keysym in ["space", "Return"]:
+        global history, current_version
 
-    # Check if the first version is empty
-    if history[0] != "":
-        if current_version < max_history:
-            # Add a new version
-            history.insert(0, "")
-            # Update the current version
-            current_version += 1
+        # Check if the first version is empty
+        if history[0] != "":
+            if current_version < max_history:
+                # Add a new version
+                history.insert(0, "")
+                # Update the current version
+                current_version += 1
 
-    # Shift every version down one
-    for i in range(0, len(history) - 1):
-        history[i] = history[i + 1]
+        # Shift every version down one
+        for i in range(0, len(history) - 1):
+            history[i] = history[i + 1]
 
-    # Update the current version
-    history[current_version] = textbox.get("1.0", tk.END)
-    # Remove the last newline character
-    history[current_version] = history[current_version][:-1]
+        # Update the current version
+        history[current_version] = textbox.get("1.0", tk.END)
+        # Remove the last newline character
+        history[current_version] = history[current_version][:-1]
 
     # Update the preview
     updatePreview()
@@ -747,20 +747,8 @@ menubar.add_cascade(label="Help", menu=helpmenu)
 # Display the menu bar
 root.config(menu=menubar)
 
-root.bind_all("<,>", trackChanges)
-root.bind_all("<.>", trackChanges)
-root.bind_all("<?>", trackChanges)
-root.bind_all("<'>", trackChanges)
-root.bind_all('<">', trackChanges)
-root.bind_all("<!>", trackChanges)
-root.bind_all("<(>", trackChanges)
-root.bind_all("<)>", trackChanges)
-root.bind_all("<[>", trackChanges)
-root.bind_all("<]>", trackChanges)
-root.bind_all("<{>", trackChanges)
-root.bind_all("<}>", trackChanges)
-root.bind_all("</>", trackChanges)
-
+# Track document changes and update markdown preview
+root.bind('<Key>', trackChanges)
 
 """
 Window Display
