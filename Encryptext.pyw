@@ -34,7 +34,7 @@ def previewWindowCreation(hidden=False, add_frame=True):
     md_preview_window = tk.Tk("Preview")
     if hidden:
         md_preview_window.withdraw()
-    md_preview_window.title("Encryptext Preview")
+    md_preview_window.title("Preview")
     md_preview_window.geometry("800x500")
     md_preview_window.iconbitmap(getTrueFilename("app_icon.ico"))
 
@@ -129,12 +129,14 @@ def quitApp(Event=None):
         if quit_confirm:
             try:
                 md_preview_window.destroy()
+                pref_window.destroy()
             finally:
                 root.destroy()
                 sys.exit()
     else:
         try:
             md_preview_window.destroy()
+            pref_window.destroy()
         finally:
             root.destroy()
             sys.exit()
@@ -299,8 +301,7 @@ def newFile(Event=None):
             current_version = 1
 
             title.set("Untitled")
-        else:
-            pass
+        else: pass
     else:
         save_location = ""
         textbox.config(state=tk.NORMAL)
@@ -492,14 +493,24 @@ def openPreview(Event=None):
 def closePreview(Event=None):
     try:
         md_preview_window.withdraw()
-    except:
-        pass
+    except: pass
 
 def select_all(Event=None):
     textbox.event_generate("<<SelectAll>>")
 
 def deselect_all(Event=None):
     textbox.event_generate("<<SelectNone>>")
+
+def openPreferences():
+    global pref_window, frame
+
+    pref_window = tk.Tk("Preferences")
+    pref_window.title("Preferences")
+    pref_window.geometry("500x600")
+    pref_window.iconbitmap(getTrueFilename("app_icon.ico"))
+    pref_window.protocol("WM_DELETE_WINDOW", pref_window.destroy)
+
+    pref_window.mainloop()
 
 def about_menu(Event=None):
     messagebox.showinfo("About Encryptext", "Encryptext can do what Notepad does, and more. You can edit, format, and encrypt files securely, while also editing regular files with ease.\n\n Free for everyone. Forever. ❤")
@@ -706,7 +717,7 @@ md_preview_window.bind_all("<Control-e>", updatePreview)
 
 editmenu.add_separator()
 
-editmenu.add_command(label="Edit Preferences")
+editmenu.add_command(label="Edit Preferences", command=openPreferences)
 
 # Format menu items
 textfontmenu.add_command(label="Arial")
