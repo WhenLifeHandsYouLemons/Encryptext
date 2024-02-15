@@ -7,9 +7,12 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import colorchooser
-import traceback
-import webbrowser
-from cryptography.fernet import Fernet
+import traceback    # For the error messages when in exe form
+import webbrowser   # For opening the help page
+from cryptography.fernet import Fernet  # For encryption features
+# For Markdown preview features
+from tkinterweb import HtmlFrame
+import markdown
 
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
@@ -19,12 +22,29 @@ def getTrueFilename(filename):
         base = abspath(".")
     return join(base, filename)
 
-
 """
 Window Settings
 """
 # Create the window
 root = tk.Tk("Encryptext")
+
+def previewWindowCreation(hidden=False, add_frame=True):
+    global md_preview_window, frame
+    md_preview_window = tk.Tk("Preview")
+    if hidden:
+        md_preview_window.withdraw()
+    md_preview_window.title("Encryptext Preview")
+    md_preview_window.geometry("800x500")
+    md_preview_window.iconbitmap(getTrueFilename("app_icon.ico"))
+
+    if add_frame:
+        frame = HtmlFrame(md_preview_window, messages_enabled=False)
+        frame.load_html(textbox.get("1.0", tk.END))
+        frame.pack(fill="both", expand=True)
+        md_preview_window.bind_all("<Control-e>", updatePreview)
+        md_preview_window.bind_all("<Alt-P>", closePreview)
+
+previewWindowCreation(hidden=True, add_frame=False)
 
 # Rename the window
 root.title("Encryptext")
@@ -84,7 +104,6 @@ tag_no = 0
 Functions
 """
 
-
 def updateTags():
     global tags
 
@@ -109,9 +128,10 @@ def quitApp(Event=None):
         quit_confirm = messagebox.askyesno("Quit", "Quit Encryptext?\n\nAny unsaved changes will be lost.")
         if quit_confirm:
             root.destroy()
+            md_preview_window.destroy()
     else:
         root.destroy()
-
+        md_preview_window.destroy()
 
 def openFile(Event=None, current=False):
     # Make save_location global to change it for the whole program
@@ -250,7 +270,11 @@ def openFile(Event=None, current=False):
 
                 # Close the file
                 file.close()
-
+            if file_extension == "md":
+                try:
+                    md_preview_window.deiconify()
+                except:
+                    md_preview_window = tk.Tk("Preview")
 
 def newFile(Event=None):
     global save_location, history, current_version
@@ -279,7 +303,6 @@ def newFile(Event=None):
 
         title.set("Untitled")
 
-
 def saveFile(Event=None):
     # If it's a new file
     if save_location == "":
@@ -305,7 +328,6 @@ def saveFile(Event=None):
         file = open(save_location, "w")
         file.write(text)
         file.close()
-
 
 def saveFileAs(Event=None):
     global save_location
@@ -338,7 +360,6 @@ def saveFileAs(Event=None):
         # Open the new file
         openFile(current=True)
 
-
 def undo(Event=None):
     global history
 
@@ -365,7 +386,6 @@ def undo(Event=None):
         # Update the textbox
         textbox.delete("1.0", tk.END)
         textbox.insert(tk.END, history[current_version])
-
 
 def redo(Event=None):
     global history
@@ -397,6 +417,9 @@ def redo(Event=None):
         textbox.delete("1.0", tk.END)
         textbox.insert(tk.END, history[current_version])
 
+def updatePreview(Event=None):
+    # Update the preview
+    frame.load_html(markdown.markdown(textbox.get("1.0", tk.END)))
 
 def trackChanges(Event=None):
     global history
@@ -419,18 +442,17 @@ def trackChanges(Event=None):
     # Remove the last newline character
     history[current_version] = history[current_version][:-1]
 
+    # Update the preview
+    updatePreview()
 
 def cut(Event=None):
     textbox.event_generate("<<Cut>>")
 
-
 def copy(Event=None):
     textbox.event_generate("<<Copy>>")
 
-
 def paste(Event=None):
     textbox.event_generate("<<Paste>>")
-
 
 def viewFile(Event=None):
     # Open the file
@@ -439,32 +461,37 @@ def viewFile(Event=None):
     # Set the textbox to be read-only
     textbox.config(state=tk.DISABLED)
 
-
 def viewingMode(Event=None):
     # Set the textbox to be read-only
     textbox.config(state=tk.DISABLED)
-
 
 def editingMode(Event=None):
     # Set the textbox to be writable
     textbox.config(state=tk.NORMAL)
 
+def openPreview(Event=None):
+    try:
+        md_preview_window.deiconify()
+    except:
+        previewWindowCreation()
+
+def closePreview(Event=None):
+    try:
+        md_preview_window.withdraw()
+    except:
+        pass
 
 def select_all(Event=None):
     textbox.event_generate("<<SelectAll>>")
 
-
 def deselect_all(Event=None):
     textbox.event_generate("<<SelectNone>>")
-
 
 def about_menu(Event=None):
     messagebox.showinfo("About Encryptext", "Encryptext can do what Notepad does, and more. You can edit, format, and encrypt files securely, while also editing regular files with ease.\n\n Free for everyone. Forever. ❤")
 
-
 def documentation(Event=None):
     webbrowser.open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
-
 
 def bold_text_style(Event=None):
     global tag_no
@@ -479,7 +506,6 @@ def bold_text_style(Event=None):
 
     tag_no += 1
 
-
 def italic_text_style(Event=None):
     global tag_no
     # Get the position of current selection
@@ -493,7 +519,6 @@ def italic_text_style(Event=None):
 
     tag_no += 1
 
-
 def normal_text_style(Event=None):
     global tag_no
     # Get the position of current selection
@@ -506,7 +531,6 @@ def normal_text_style(Event=None):
     tags.append([f"normal{tag_no}", start_selection, end_selection, font_type, str(font_size)])
 
     tag_no += 1
-
 
 def text_colour_change(Event=None):
     global tag_no
@@ -524,7 +548,6 @@ def text_colour_change(Event=None):
     tags.append([f"colour{tag_no}",start_selection,end_selection,colour_code,font_type,str(font_size),])
 
     tag_no += 1
-
 
 def increase_font(Event=None):
     global tag_no
@@ -545,7 +568,6 @@ def increase_font(Event=None):
 
     tag_no += 1
 
-
 def decrease_font(Event=None):
     global tag_no
     global font_size
@@ -564,7 +586,6 @@ def decrease_font(Event=None):
         tags.append([f"size{tag_no}", start_selection, end_selection, font_type, str(size)])
 
     tag_no += 1
-
 
 """
 Menu Bar
@@ -609,6 +630,7 @@ filemenu.add_separator()
 
 filemenu.add_command(label="Exit", accelerator="Ctrl+W", command=quitApp)
 root.bind_all("<Control-w>", quitApp)
+# md_preview_window.bind_all("<Control-w>", closePreview)
 
 # Edit menu items
 editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo)
@@ -631,6 +653,19 @@ editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=select_al
 
 editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselect_all)
 root.bind_all("<Control-A>", deselect_all)
+
+editmenu.add_separator()
+
+editmenu.add_command(label="Open Markdown Preview", accelerator="Alt+P", command=openPreview)
+root.bind_all("<Alt-p>", openPreview)
+
+editmenu.add_command(label="Close Markdown Preview", accelerator="Alt+Shift+P", command=closePreview)
+root.bind_all("<Alt-P>", closePreview)
+md_preview_window.bind_all("<Alt-P>", closePreview)
+
+editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
+root.bind_all("<Control-e>", updatePreview)
+md_preview_window.bind_all("<Control-e>", updatePreview)
 
 editmenu.add_separator()
 
@@ -706,11 +741,17 @@ scroll_bar_vertical.config(command=textbox.yview)
 textbox.config(yscrollcommand=scroll_bar_vertical.set)
 textbox.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
 
+# To make it more seamless
+# The preview window was the focused one before
+root.focus_force()
+
 """
 Window Display
 """
 # When closing the app, run the quit_app function
 root.protocol("WM_DELETE_WINDOW", quitApp)
+md_preview_window.protocol("WM_DELETE_WINDOW", md_preview_window.destroy)
 
-# Run the window (display it)
+# Display the window
+md_preview_window.mainloop()
 root.mainloop()
