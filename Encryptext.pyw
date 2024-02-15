@@ -71,18 +71,19 @@ format_separator = ''# FORMAT SEPARATOR HERE# FORMAT STRING HERE
 format_string = ''# FORMAT STRING HERE
 
 supported_file_types = [
-    ("Encryptext", "*.etx"),
-    ("Plain Text", "*.txt"),
-    ("Python", "*.py"),
-    ("HTML", "*.html"),
-    ("CSS", "*.css"),
-    ("JavaScript", "*.js"),
-    ("JSON", "*.json"),
-    ("Markdown", "*.md"),
-    ("Comma-Separated Values", "*.csv"),
+    ("Accepted Files", "*.etx *.md *.txt *.py *.html *.css *.js *.json *.csv *.ini *.log"),
+    ("Encrypted File", "*.etx"),
+    ("Markdown File", "*.md"),
+    ("Plain Text File", "*.txt"),
+    ("Python File", "*.py"),
+    ("HTML File", "*.html"),
+    ("CSS File", "*.css"),
+    ("JavaScript File", "*.js"),
+    ("JSON File", "*.json"),
+    ("Comma-Separated Values File", "*.csv"),
     ("Windows Initialization File", "*.ini"),
     ("Log File", "*.log"),
-    ("All Files", "*.*"),
+    ("All Files", "*.*")
 ]
 # ENCRYPTION KEY HERE
 encrypt_key = b''# ENCRYPTION KEY HERE
