@@ -7,12 +7,12 @@ import tkinter as tk
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import colorchooser
-import traceback    # For the error messages when in exe form
-import webbrowser   # For opening the help page
+from traceback import format_exc, print_exc # For the error messages when in exe form
+from webbrowser import open_new # For opening the help page
 from cryptography.fernet import Fernet  # For encryption features
 # For Markdown preview features
-from tkinterweb import HtmlFrame
-import markdown
+import tkinterweb
+from markdown import markdown
 
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
@@ -39,8 +39,8 @@ def previewWindowCreation(hidden=False, add_frame=True):
     md_preview_window.iconbitmap(getTrueFilename("app_icon.ico"))
 
     if add_frame:
-        frame = HtmlFrame(md_preview_window, messages_enabled=False)
-        frame.load_html(markdown.markdown(textbox.get("1.0", tk.END)))
+        frame = tkinterweb.HtmlFrame(md_preview_window, messages_enabled=False)
+        frame.load_html(markdown(textbox.get("1.0", tk.END)))
         frame.pack(fill="both", expand=True)
         md_preview_window.bind_all("<Control-e>", updatePreview)
         md_preview_window.bind_all("<Alt-P>", closePreview)
@@ -269,8 +269,8 @@ def openFile(Event=None, current=False):
                             tags.append(format)
                 except Exception as e:
                     if debug:
-                        messagebox.showerror("Error Opening File", traceback.format_exc())
-                        traceback.print_exc()
+                        messagebox.showerror("Error Opening File", format_exc())
+                        print_exc()
                     else:
                         messagebox.showerror("Error Opening File", f"Access denied.\nPlease use the Encryptext program that you used to write this file to open it correctly.")
             else:
@@ -430,7 +430,7 @@ def redo(Event=None):
 def updatePreview(Event=None):
     try:
         # Update the preview
-        frame.load_html(markdown.markdown(textbox.get("1.0", tk.END)))
+        frame.load_html(markdown(textbox.get("1.0", tk.END)))
     except:
         # Only update it if it's markdown or none
         if file_extension == "md":
@@ -517,7 +517,7 @@ def about_menu(Event=None):
     messagebox.showinfo("About Encryptext", "Encryptext can do what Notepad does, and more. You can edit, format, and encrypt files securely, while also editing regular files with ease.\n\n Free for everyone. Forever. ❤")
 
 def documentation(Event=None):
-    webbrowser.open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
+    open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
 
 def bold_text_style(Event=None):
     global tag_no
