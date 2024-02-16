@@ -1,4 +1,3 @@
-# Don't run this file inside the repo folder
 from os import devnull, system
 from os.path import abspath, join
 from sys import _MEIPASS

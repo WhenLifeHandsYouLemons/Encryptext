@@ -1,27 +1,24 @@
-# You can run this inside the repo folder
 from os import system
 import PyInstaller.__main__
 
 # Creates an executable file
 PyInstaller.__main__.run([
-    'installer.py',
+    'installer_linux.py',
     '--onefile',
     '--clean',
     '--log-level',
-    'CRITICAL',
+    'FATAL',
     '--icon',
     'installer_icon.ico',
-    '--add-data',
-    'app_icon.ico;.',
-    '--add-data',
-    'Encryptext.pyw;.'
+    '--add-data=app_icon.ico:.',
+    '--add-data=Encryptext.pyw:.'
 ])
 # Moves the exe out of the dist folder
-system("move dist\\installer.exe installer.exe")
+system("mv dist/installer_linux encryptext_installer_v0.0.0_linux")
 
 # Removes the "build" folder
-system("rmdir /s /q build")
+system("rm -rf build")
 # Removes the "installer.spec" file
-system("del installer.spec")
+system("rm installer_linux.spec")
 # Removes the "dist" folder
-system("rmdir /s /q dist")
+system("rm -rf dist")
