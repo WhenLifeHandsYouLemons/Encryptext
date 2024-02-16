@@ -1,3 +1,4 @@
+# You can run this inside the repo folder
 from os import system
 import PyInstaller.__main__
 
