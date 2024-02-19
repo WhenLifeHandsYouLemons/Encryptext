@@ -1,12 +1,13 @@
-from os import devnull, system
-from os.path import abspath, join
-from sys import _MEIPASS
+import os
+import sys
+from subprocess import run
 from time import sleep
-from subprocess import check_call
 from cryptography.fernet import Fernet as F
 from random import choice, randint
 from string import ascii_letters, digits
 import threading as t
+
+version = "1.5.1"
 
 print("\nStarting installer...")
 print("Please wait...")
@@ -14,10 +15,10 @@ print("Please wait...")
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
     try:
-        base = _MEIPASS
+        base = sys._MEIPASS
     except Exception:
-        base = abspath(".")
-    return join(base, filename)
+        base = os.path.abspath(".")
+    return os.path.join(base, filename)
 
 # Open the Encryptext.py file and read it into a variable
 file = open(getTrueFilename("Encryptext.pyw"), "r", encoding="utf8")
@@ -98,10 +99,15 @@ print("Creating custom program...\n\n")
 def appCreation():
     file_path = getTrueFilename("Encryptext-User.pyw")
     icon_path = getTrueFilename("app_icon.ico")
+    # https://github.com/pyinstaller/pyinstaller/issues/6658#issuecomment-1062817361
+    subproc_env = os.environ.copy()
+    subproc_env.pop('TCL_LIBRARY', None)
+    subproc_env.pop('TK_LIBRARY', None)
+
     # https://stackoverflow.com/a/72523249
     # https://stackoverflow.com/a/13790741
     # https://stackoverflow.com/a/8529412
-    check_call(["pyinstaller",
+    command = ["pyinstaller",
                 "--onefile",
                 "--clean",
                 "--windowed",
@@ -113,11 +119,13 @@ def appCreation():
                 f"{icon_path};.",
                 "--name",
                 "Encryptext",
+                "--collect-all",
+                "tkinterweb",
                 file_path
-               ],
-               shell=True,
-               stdout=open(devnull, 'wb'),
-               stderr=open(devnull, 'wb'))
+    ]
+    # Redirect both stdout and stderr to /dev/null or NUL depending on the platform
+    with open(os.devnull, 'w') as null_file:
+        run(command, shell=True, env=subproc_env, stdout=null_file, stderr=null_file)
 
 # https://stackoverflow.com/a/34325723
 # Print iterations progress
@@ -137,30 +145,32 @@ app_thread.start()
 # Show a progress bar while app is compiling
 l = 100
 i = 0
+speed = 1.75
 printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50)
-while i < l-25:
-    sleep(0.5)
+while i < l-1:
+    sleep(speed)
+
+    if not app_thread.is_alive():
+        speed = 0.05
+
     i += 1
     printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50, printEnd='')
 
 app_thread.join()
 
-while i < l:
-    sleep(0.05)
-    i += 1
-    printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50, printEnd='')
+printProgressBar(i+1, l, prefix='Progress:', suffix='Complete', length=50, printEnd='')
 
 # Moves the exe out of the dist folder
-system("move dist\\Encryptext.exe Encryptext.exe >nul")
+os.system(f"move dist\\Encryptext.exe Encryptext_v{version}.exe >nul")
 
 print("\r\n\nCreated program!")
 print("Cleaning up...")
 
 # Removes the "dist" folder
-system("rmdir /s /q dist")
+os.system("rmdir /s /q dist")
 # Removes the "build" folder
-system("rmdir /s /q build")
-# Removes the "Encryptext-User.spec" file
-system("del Encryptext.spec")
+os.system("rmdir /s /q build")
+# Removes the "Encryptext.spec" file
+os.system("del Encryptext.spec")
 
 input("\nCompleted! Press enter to finish setup...")

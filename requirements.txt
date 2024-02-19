@@ -4,3 +4,5 @@ webbrowser
 cryptography
 tkinterweb
 markdown
+PyInstaller
+threading
