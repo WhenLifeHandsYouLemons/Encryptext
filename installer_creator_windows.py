@@ -25,7 +25,5 @@ system(f"move dist\\installer_windows.exe encryptext_installer_v{version}_64bit.
 
 # Removes the "build" folder
 system("rmdir /s /q build")
-# Removes the "installer_windows.spec" file
-system("del installer_windows.spec")
 # Removes the "dist" folder
 system("rmdir /s /q dist")
