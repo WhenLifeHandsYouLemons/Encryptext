@@ -56,6 +56,8 @@ root.iconbitmap(getTrueFilename("app_icon.ico"))
 Variables
 """
 debug = False
+# UPDATE MODE HERE
+update = False# UPDATE MODE HERE
 
 save_location = ""
 file_extension = ""
@@ -513,6 +515,18 @@ def openPreferences():
 
     pref_window.mainloop()
 
+def update_menu(Event=None):
+    messagebox.showinfo("Update Encryptext", "1. Run the updater\n2. When it asks for the old enryption keys, copy and paste the ones shown in the text editor window.\n\nClick 'Ok' to view the keys.\n\nDO NOT SAVE THE DOCUMENT WITH THE KEYS.")
+
+    key = encrypt_key.decode()
+
+    # Add the needed strings to the box
+    textbox.delete("1.0", tk.END)
+    textbox.insert("1.0", f"Encryption Key: {key}\nFormat Item Separator: {format_item_separator}\nFormat Separator String: {format_separator}\nFormat String: {format_string}")
+
+    # Enter viewing mode so that the string can't be accidentally changed
+    viewingMode()
+
 def about_menu(Event=None):
     messagebox.showinfo("About Encryptext", "Encryptext can do what Notepad does, and more. You can edit, format, and encrypt files securely, while also editing regular files with ease.\n\n Free for everyone. Forever. ❤")
 
@@ -740,6 +754,9 @@ root.bind_all("<Alt-b>", bold_text_style)
 
 textstylemenu.add_command(label="Italic", accelerator="Alt+I", command=italic_text_style)
 root.bind_all("<Alt-i>", italic_text_style)
+
+if update:
+    helpmenu.add_command(label="Update Encryptext", command=update_menu)
 
 helpmenu.add_command(label="About Encryptext", command=about_menu)
 
