@@ -9,7 +9,7 @@ PyInstaller.__main__.run([
     '--onefile',
     '--clean',
     '--log-level',
-    'INFO',
+    'ERROR',
     '--icon',
     'installer_icon.ico',
     '--add-data',
