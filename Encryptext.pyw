@@ -56,6 +56,9 @@ root.iconbitmap(getTrueFilename("app_icon.ico"))
 Variables
 """
 debug = False
+# UPDATE MODE HERE
+update = False# UPDATE MODE HERE
+version = "1.6.1"
 
 save_location = ""
 file_extension = ""
@@ -513,8 +516,20 @@ def openPreferences():
 
     pref_window.mainloop()
 
+def update_menu(Event=None):
+    messagebox.showinfo("Update Encryptext", """1. Run the new version's installer\n2. When it asks whether you're installing or updating, choose updating.\n3. When it asks for the old enryption key and other strings, copy and paste the ones shown in the text editor here.\n\nClick 'Ok' to view the keys.\n\nDO NOT SAVE THE DOCUMENT WITH THE KEYS.""")
+
+    key = encrypt_key.decode()
+
+    # Add the needed strings to the box
+    textbox.delete("1.0", tk.END)
+    textbox.insert("1.0", f"Encryption Key: {key}\nFormat Item Separator: {format_item_separator}\nFormat Separator String: {format_separator}\nFormat String: {format_string}")
+
+    # Enter viewing mode so that the string can't be accidentally changed
+    viewingMode()
+
 def about_menu(Event=None):
-    messagebox.showinfo("About Encryptext", "Encryptext can do what Notepad does, and more. You can edit, format, and encrypt files securely, while also editing regular files with ease.\n\n Free for everyone. Forever. ❤")
+    messagebox.showinfo("About Encryptext", f"Unlock a new level of security and versatility with Encryptext, the text editor designed for the modern user. Seamlessly blending essential features with modern encryption technology, Encryptext ensures your documents are safeguarded like never before.\n\nFree for everyone. Forever. ❤\n\nVersion {version}")
 
 def documentation(Event=None):
     open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
@@ -618,17 +633,17 @@ Window Items
 """
 title = tk.StringVar()
 title.set("Untitled")
-title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center")
+title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center", background="#D2D2D2")
 title_of_file.pack(side=tk.TOP, fill=tk.X)
 
-textbox = tk.Text(root, state=tk.NORMAL, font=(font_type, font_size, "normal"))
+textbox = tk.Text(root, state=tk.NORMAL, font=(font_type, font_size, "normal"), cursor="xterm")
 
-scroll_bar_vertical = tk.Scrollbar(root, orient=tk.VERTICAL)
+scroll_bar_vertical = tk.Scrollbar(textbox, orient=tk.VERTICAL, cursor="arrow")
 scroll_bar_vertical.pack(side=tk.RIGHT, fill=tk.Y)
 scroll_bar_vertical.config(command=textbox.yview)
 
 textbox.config(yscrollcommand=scroll_bar_vertical.set)
-textbox.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+textbox.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 # To make it more seamless
 # The preview window was the focused one before
@@ -740,6 +755,9 @@ root.bind_all("<Alt-b>", bold_text_style)
 
 textstylemenu.add_command(label="Italic", accelerator="Alt+I", command=italic_text_style)
 root.bind_all("<Alt-i>", italic_text_style)
+
+if update:
+    helpmenu.add_command(label="Update Encryptext", command=update_menu)
 
 helpmenu.add_command(label="About Encryptext", command=about_menu)
 

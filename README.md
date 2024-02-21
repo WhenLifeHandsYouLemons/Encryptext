@@ -1,10 +1,25 @@
 # Encryptext
 
-## About
+Introducing Encryptext: Your Secure and Versatile Text Editor!
 
-Download the latest release [here](https://github.com/WhenLifeHandsYouLemons/Encryptext/releases).
+Unlock a new level of security and versatility with Encryptext, the text editor designed for the modern user. Seamlessly blending essential features with modern encryption technology, Encryptext ensures your documents are safeguarded like never before.
 
-Encryptext can do what Notepad does, and more. You can edit, format, and encrypt files securely, while also editing regular text files with ease.
+## Features
+
+### Unrivaled Security
+Encryptext introduces a custom .etx file type, offering unparalleled security through advanced encryption. Your files are protected against unauthorized access, ensuring your sensitive information remains confidential. With Encryptext, your peace of mind is guaranteed.
+
+### Customizable Formatting
+Elevate your documents with customizable formatting options. From bold and italicized text to coloured fonts and varied sizes, Encryptext empowers you to express yourself with style. Experience the freedom to craft visually stunning documents effortlessly.
+
+### Real-Time Preview
+Experience unparalleled convenience with Encryptext’s real-time rendering feature. Whether you’re editing a Markdown file or exploring a new format, instantly preview your work in its finalized form. Say goodbye to guesswork and hello to efficiency.
+
+### Lightning-Fast Performance
+Say goodbye to sluggish software. Encryptext is designed for speed, ensuring a seamless editing experience without compromising performance. Stay focused and productive with lightning-fast response times.
+
+### Effortless Updates
+Keep your software up-to-date without the hassle. With Encryptext’s built-in updater, access the latest features and enhancements without losing your valuable data. Stay ahead of the curve with hassle-free updates.
 
 ## Installation
 
@@ -13,19 +28,4 @@ Encryptext can do what Notepad does, and more. You can edit, format, and encrypt
 4. Follow the instructions on the screen.
 5. Run the "`Encryptext.exe`" file to get started!
 
-## Features
-
-Encryptext can open a multitude of file types such as, but not limited to:
-
-1. `.txt`
-2. `.py`
-3. `.css`
-4. `.html`
-5. `.js`
-6. `.etx`
-
-`.etx` files are encrypted text files that can only be opened by Encryptext. They are encrypted using an encryption algorithm that is extremely secure. The encryption key for each user is never the same as any other user. This adds an extra layer of encryption for your files.
-
-**IMPORTANT**: `.etx` files created by your copy of the program can only be opened and be readable using the same copy of the program.
-
-`.etx` files also allow you to format the document with ease. You can change the font (being added in the future), font size, font color, and font style - such as bold and italic - of the document.
+Enjoy using Encryptext!
