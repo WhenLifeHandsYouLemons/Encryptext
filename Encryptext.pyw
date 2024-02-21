@@ -58,7 +58,7 @@ Variables
 debug = False
 # UPDATE MODE HERE
 update = False# UPDATE MODE HERE
-version = "1.6.1"
+version = "1.7.0"
 
 save_location = ""
 file_extension = ""

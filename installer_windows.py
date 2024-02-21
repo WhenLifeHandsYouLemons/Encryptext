@@ -8,7 +8,7 @@ from random import choice, randint
 from string import ascii_letters, digits
 import threading as t
 
-version = "1.6.1"
+version = "1.7.0"
 
 print("\nStarting installer...")
 print("Please wait...")
