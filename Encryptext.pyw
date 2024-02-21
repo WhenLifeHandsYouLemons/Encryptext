@@ -633,17 +633,17 @@ Window Items
 """
 title = tk.StringVar()
 title.set("Untitled")
-title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center", background="lightgrey")
+title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center", background="#D2D2D2")
 title_of_file.pack(side=tk.TOP, fill=tk.X)
 
+textbox = tk.Text(root, state=tk.NORMAL, font=(font_type, font_size, "normal"), cursor="xterm")
 
-scroll_bar_vertical = tk.Scrollbar(root, orient=tk.VERTICAL)
-textbox = tk.Text(tab_panes, state=tk.NORMAL, font=(font_type, font_size, "normal"), cursor="xterm")
+scroll_bar_vertical = tk.Scrollbar(textbox, orient=tk.VERTICAL, cursor="arrow")
 scroll_bar_vertical.pack(side=tk.RIGHT, fill=tk.Y)
 scroll_bar_vertical.config(command=textbox.yview)
 
 textbox.config(yscrollcommand=scroll_bar_vertical.set)
-textbox.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+textbox.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
 # To make it more seamless
 # The preview window was the focused one before
