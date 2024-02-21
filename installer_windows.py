@@ -2,12 +2,13 @@ import os
 import sys
 from subprocess import run
 from time import sleep
+import time
 from cryptography.fernet import Fernet as F
 from random import choice, randint
 from string import ascii_letters, digits
 import threading as t
 
-version = "1.6.0"
+version = "1.6.1"
 
 print("\nStarting installer...")
 print("Please wait...")
@@ -63,81 +64,6 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     if iteration == total:
         print()
 
-# Open the Encryptext.py file and read it into a variable
-file = open(getTrueFilename("Encryptext.pyw"), "r", encoding="utf8")
-file = file.read()
-
-# Find where the encryption key is stored in the file
-file = file.split("# ENCRYPTION KEY HERE")
-
-# Create a key and remove the b'' from the string
-key = str(F.generate_key()).split("'")[1]
-
-# Add the key to the file
-key_line = file[1]
-key_line = key_line.split("'")
-key_line[1] = key
-key_line = "'".join(key_line)
-file[1] = key_line
-
-text = "".join(file)
-
-print("Encryption key created!")
-
-possible_characters = ascii_letters + digits
-
-# Find where the format item separator string is stored in the file
-file = text.split("# FORMAT ITEM SEPARATOR HERE")
-
-# Create a format item separator string
-format_item_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
-# Add the format item separator string to the file
-key_line = file[1]
-key_line = key_line.split("'")
-key_line[1] = format_item_separator
-key_line = "'".join(key_line)
-file[1] = key_line
-
-text = "".join(file)
-
-# Find where the format separator string is stored in the file
-file = text.split("# FORMAT SEPARATOR HERE")
-
-# Create a format separator string
-format_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
-
-# Add the format separator string to the file
-key_line = file[1]
-key_line = key_line.split("'")
-key_line[1] = format_separator
-key_line = "'".join(key_line)
-file[1] = key_line
-
-text = "".join(file)
-
-# Find where the format string is stored in the file
-file = text.split("# FORMAT STRING HERE")
-
-# Create a format string
-format_string = "".join([choice(possible_characters) for i in range(randint(15, 45))])
-
-# Add the format string to the file
-key_line = file[1]
-key_line = key_line.split("'")
-key_line[1] = format_string
-key_line = "'".join(key_line)
-file[1] = key_line
-
-text = "".join(file)
-
-# Write the file back to the Encryptext.py file
-file = open(getTrueFilename("Encryptext-User.pyw"), "w", encoding="utf8")
-file.write(text)
-file.close()
-
-print("Format strings created!")
-print("Creating custom program...\n\n")
-
 update = input("\nAre you updating or installing Encryptext? [(u)pdating/(i)nstalling] ")
 while update != "u" and update != "i":
     update = input("\nAre you updating or installing Encryptext? [(u)pdating/(i)nstalling] ")
@@ -166,6 +92,11 @@ text = "".join(file)
 
 print("\nUpdate option set!")
 
+if update == "u":
+    print("\n\nPlease open the current version of Encryptext you have.")
+    print("In the menu bar at the top, click on 'Help'. Then click on 'Update Encryptext'.\n")
+    time.sleep(5)
+
 # Find where the encryption key is stored in the file
 file = text.split("# ENCRYPTION KEY HERE")
 
@@ -175,7 +106,7 @@ if update == "i":
 else:
     key = str(input("\nPlease enter the Encryption Key (be careful to not add the spaces, just the text):"))
     while len(key) != 44 and key[-1] != "=":
-        key = str(input("\nYou haven't entered the key correctly. Please enter the Encryption Key (be careful to not add the spaces, just the text):"))
+        key = str(input("\nYou haven't entered the key correctly. Please enter the 'Encryption Key' (be careful to not add the spaces, just the text):"))
     print()
 
 # Add the key to the file
@@ -200,7 +131,7 @@ if update == "i":
 else:
     format_item_separator = str(input("\nPlease enter the Format Item Separator (be careful to not add the spaces, just the text):"))
     while len(format_item_separator) < 15:
-        format_item_separator = str(input("\nYou haven't entered the string correctly. Please enter the Format Item Separator (be careful to not add the spaces, just the text):"))
+        format_item_separator = str(input("\nYou haven't entered the string correctly. Please enter the 'Format Item Separator' (be careful to not add the spaces, just the text):"))
 
 # Add the format item separator string to the file
 key_line = file[1]
@@ -220,7 +151,7 @@ if update == "i":
 else:
     format_separator = str(input("\nPlease enter the Format Separator String (be careful to not add the spaces, just the text):"))
     while len(format_separator) < 15:
-        format_separator = str(input("\nYou haven't entered the string correctly. Please enter the Format Separator String (be careful to not add the spaces, just the text):"))
+        format_separator = str(input("\nYou haven't entered the string correctly. Please enter the 'Format Separator String' (be careful to not add the spaces, just the text):"))
 
 # Add the format separator string to the file
 key_line = file[1]
@@ -240,7 +171,7 @@ if update == "i":
 else:
     format_string = str(input("\nPlease enter the Format String (be careful to not add the spaces, just the text):"))
     while len(format_string) < 15:
-        format_string = str(input("\nYou haven't entered the string correctly. Please enter the Format String (be careful to not add the spaces, just the text):"))
+        format_string = str(input("\nYou haven't entered the string correctly. Please enter the 'Format String' (be careful to not add the spaces, just the text):"))
     print()
 
 # Add the format string to the file
