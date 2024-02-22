@@ -159,6 +159,7 @@ def openFile(Event=None, current=False):
     tag_no = 0
 
     # Check if the textbox is empty
+    if len(textbox.get("1.0", tk.END)) != 2 and textbox.get("1.0", tk.END) != "\n\n" and not current:
         new_file_confirm = messagebox.askyesno("Open File", "Open a file?\n\nAny unsaved changes will be lost.")
     else:
         new_file_confirm = True
