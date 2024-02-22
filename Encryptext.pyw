@@ -4,6 +4,7 @@ Imports
 import sys
 from os.path import abspath, join
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import colorchooser
@@ -91,8 +92,13 @@ supported_file_types = [
 # ENCRYPTION KEY HERE
 encrypt_key = b''# ENCRYPTION KEY HERE
 
+# For debug purposes
 if debug:
     encrypt_key = Fernet.generate_key()
+    format_item_separator = "@@@"
+    format_separator = "^^^"
+    format_string = "&&&"
+
 fernet = Fernet(encrypt_key)
 
 # Have atleast 3 versions of history
@@ -128,7 +134,7 @@ def updateTags():
 
 def quitApp(Event=None):
     # Check if the textbox is empty
-    if len(textbox.get("1.0", tk.END)) != 1:
+    if len(textbox.get("1.0", tk.END)) != 1 or textbox.get("1.0", tk.END) != "\n":
         quit_confirm = messagebox.askyesno("Quit", "Quit Encryptext?\n\nAny unsaved changes will be lost.")
         if quit_confirm:
             try:
@@ -153,7 +159,6 @@ def openFile(Event=None, current=False):
     tag_no = 0
 
     # Check if the textbox is empty
-    if len(textbox.get("1.0", tk.END)) != 1 and not current:
         new_file_confirm = messagebox.askyesno("Open File", "Open a file?\n\nAny unsaved changes will be lost.")
     else:
         new_file_confirm = True
@@ -499,10 +504,10 @@ def closePreview(Event=None):
         md_preview_window.withdraw()
     except: pass
 
-def select_all(Event=None):
+def selectAll(Event=None):
     textbox.event_generate("<<SelectAll>>")
 
-def deselect_all(Event=None):
+def deselectAll(Event=None):
     textbox.event_generate("<<SelectNone>>")
 
 def openPreferences():
@@ -516,10 +521,13 @@ def openPreferences():
 
     pref_window.mainloop()
 
-def update_menu(Event=None):
+def updateMenu(Event=None):
     messagebox.showinfo("Update Encryptext", """1. Run the new version's installer\n2. When it asks whether you're installing or updating, choose updating.\n3. When it asks for the old enryption key and other strings, copy and paste the ones shown in the text editor here.\n\nClick 'Ok' to view the keys.\n\nDO NOT SAVE THE DOCUMENT WITH THE KEYS.""")
 
     key = encrypt_key.decode()
+
+    # Change the title
+    title.set("DO NOT SAVE THIS FILE")
 
     # Add the needed strings to the box
     textbox.delete("1.0", tk.END)
@@ -528,13 +536,13 @@ def update_menu(Event=None):
     # Enter viewing mode so that the string can't be accidentally changed
     viewingMode()
 
-def about_menu(Event=None):
+def aboutMenu(Event=None):
     messagebox.showinfo("About Encryptext", f"Unlock a new level of security and versatility with Encryptext, the text editor designed for the modern user. Seamlessly blending essential features with modern encryption technology, Encryptext ensures your documents are safeguarded like never before.\n\nFree for everyone. Forever. ❤\n\nVersion {version}")
 
 def documentation(Event=None):
     open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
 
-def bold_text_style(Event=None):
+def changeToBold(Event=None):
     global tag_no
     # Get the position of current selection
     start_selection = textbox.index("sel.first")
@@ -547,7 +555,7 @@ def bold_text_style(Event=None):
 
     tag_no += 1
 
-def italic_text_style(Event=None):
+def changeToItalic(Event=None):
     global tag_no
     # Get the position of current selection
     start_selection = textbox.index("sel.first")
@@ -560,7 +568,7 @@ def italic_text_style(Event=None):
 
     tag_no += 1
 
-def normal_text_style(Event=None):
+def changeToNormal(Event=None):
     global tag_no
     # Get the position of current selection
     start_selection = textbox.index("sel.first")
@@ -573,7 +581,7 @@ def normal_text_style(Event=None):
 
     tag_no += 1
 
-def text_colour_change(Event=None):
+def changeTextColour(Event=None):
     global tag_no
     colour_code = colorchooser.askcolor(title="Choose a colour")
     colour_code = colour_code[-1]
@@ -590,7 +598,7 @@ def text_colour_change(Event=None):
 
     tag_no += 1
 
-def increase_font(Event=None):
+def increaseFont(Event=None):
     global tag_no
     global font_size
     if font_size == max_font_size:
@@ -609,7 +617,7 @@ def increase_font(Event=None):
 
     tag_no += 1
 
-def decrease_font(Event=None):
+def decreaseFont(Event=None):
     global tag_no
     global font_size
     if font_size == min_font_size:
@@ -628,6 +636,28 @@ def decrease_font(Event=None):
 
     tag_no += 1
 
+def addNewTab(Event=None):
+    # Create new textbox
+    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(font_type, font_size, "normal"), cursor="xterm"))
+
+    # Create scroll bar and link it
+    scroll_bars = []
+    scroll_bars.append(tk.Scrollbar(textboxes[-1], orient=tk.VERTICAL, cursor="arrow"))
+    scroll_bars[-1].pack(side=tk.RIGHT, fill=tk.Y)
+    scroll_bars[-1].config(command=textboxes[-1].yview)
+
+    textboxes[-1].config(yscrollcommand=scroll_bars[-1].set)
+
+    # Add to display
+    textboxes[-1].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+    tab_panes.add(textboxes[-1], text="Untitled")
+
+def closeCurrentTab(Event=None):
+    # The select function returns an empty string if there are no tabs
+    # Use "current" instead of tab_panes.select() to get an error to handle instead
+    current_tab = tab_panes.index(tab_panes.select())
+    tab_panes.forget(current_tab)
+
 """
 Window Items
 """
@@ -636,14 +666,21 @@ title.set("Untitled")
 title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center", background="#D2D2D2")
 title_of_file.pack(side=tk.TOP, fill=tk.X)
 
-textbox = tk.Text(root, state=tk.NORMAL, font=(font_type, font_size, "normal"), cursor="xterm")
+tab_panes = ttk.Notebook(root, cursor="hand2", padding=5)
+tab_panes.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+tab_panes.enable_traversal()
 
-scroll_bar_vertical = tk.Scrollbar(textbox, orient=tk.VERTICAL, cursor="arrow")
-scroll_bar_vertical.pack(side=tk.RIGHT, fill=tk.Y)
-scroll_bar_vertical.config(command=textbox.yview)
+textboxes = []
 
-textbox.config(yscrollcommand=scroll_bar_vertical.set)
+addNewTab()
+
+#! Delete from here
+# This is here to make the rest of the program work
+# Delete this once all references to textbox are changed to the array
+textbox = tk.Text(tab_panes, state=tk.NORMAL, font=(font_type, font_size, "normal"), cursor="xterm")
 textbox.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+tab_panes.add(textbox, text="TEMP")
+#! Delete until here
 
 # To make it more seamless
 # The preview window was the focused one before
@@ -692,6 +729,14 @@ root.bind_all("<Alt-v>", viewingMode)
 
 filemenu.add_separator()
 
+filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
+root.bind_all("<Control-t>", addNewTab)
+
+filemenu.add_command(label="Close Tab", accelerator="Alt+W", command=closeCurrentTab)
+root.bind_all("<Alt-w>", closeCurrentTab)
+
+filemenu.add_separator()
+
 filemenu.add_command(label="Exit", accelerator="Ctrl+W", command=quitApp)
 root.bind_all("<Control-w>", quitApp)
 # md_preview_window.bind_all("<Control-w>", closePreview)
@@ -713,19 +758,19 @@ editmenu.add_command(label="Paste", accelerator="Ctrl+V", command=paste)
 
 editmenu.add_separator()
 
-editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=select_all)
+editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=selectAll)
 
-editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselect_all)
-root.bind_all("<Control-A>", deselect_all)
+editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselectAll)
+root.bind_all("<Control-A>", deselectAll)
 
 editmenu.add_separator()
 
-editmenu.add_command(label="Open Markdown Preview", accelerator="Alt+P", command=openPreview)
-root.bind_all("<Alt-p>", openPreview)
+editmenu.add_command(label="Open Markdown Preview", accelerator="Ctrl+P", command=openPreview)
+root.bind_all("<Control-p>", openPreview)
 
-editmenu.add_command(label="Close Markdown Preview", accelerator="Alt+Shift+P", command=closePreview)
-root.bind_all("<Alt-P>", closePreview)
-md_preview_window.bind_all("<Alt-P>", closePreview)
+editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P", command=closePreview)
+root.bind_all("<Control-P>", closePreview)
+md_preview_window.bind_all("<Control-P>", closePreview)
 
 editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
 root.bind_all("<Control-e>", updatePreview)
@@ -738,28 +783,28 @@ editmenu.add_command(label="Edit Preferences", command=openPreferences)
 # Format menu items
 textfontmenu.add_command(label="Arial")
 
-textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increase_font)
-root.bind_all("<Control-+>", increase_font)
+textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increaseFont)
+root.bind_all("<Control-+>", increaseFont)
 
-textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decrease_font)
-root.bind_all("<Control-_>", decrease_font)
+textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decreaseFont)
+root.bind_all("<Control-_>", decreaseFont)
 
-formatmenu.add_command(label="Text Colour", accelerator="Alt+C", command=text_colour_change)
-root.bind_all("<Alt-c>", text_colour_change)
+formatmenu.add_command(label="Text Colour", accelerator="Alt+C", command=changeTextColour)
+root.bind_all("<Alt-c>", changeTextColour)
 
-textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=normal_text_style)
-root.bind_all("<Alt-n>", normal_text_style)
+textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
+root.bind_all("<Alt-n>", changeToNormal)
 
-textstylemenu.add_command(label="Bold", accelerator="Alt+B", command=bold_text_style)
-root.bind_all("<Alt-b>", bold_text_style)
+textstylemenu.add_command(label="Bold", accelerator="Alt+B", command=changeToBold)
+root.bind_all("<Alt-b>", changeToBold)
 
-textstylemenu.add_command(label="Italic", accelerator="Alt+I", command=italic_text_style)
-root.bind_all("<Alt-i>", italic_text_style)
+textstylemenu.add_command(label="Italic", accelerator="Alt+I", command=changeToItalic)
+root.bind_all("<Alt-i>", changeToItalic)
 
 if update:
-    helpmenu.add_command(label="Update Encryptext", command=update_menu)
+    helpmenu.add_command(label="Update Encryptext", command=updateMenu)
 
-helpmenu.add_command(label="About Encryptext", command=about_menu)
+helpmenu.add_command(label="About Encryptext", command=aboutMenu)
 
 helpmenu.add_command(label="Encryptext on GitHub", command=documentation)
 

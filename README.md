@@ -1,8 +1,8 @@
 # Encryptext
 
-Introducing Encryptext: Your Secure and Versatile Text Editor!
+Introducing Encryptext: An Extremely Secure and Versatile Text Editor!
 
-Unlock a new level of security and versatility with Encryptext, the text editor designed for the modern user. Seamlessly blending essential features with modern encryption technology, Encryptext ensures your documents are safeguarded like never before.
+Unlock a new level of security and versatility with Encryptext, the innovative text editor designed for the modern user. Seamlessly blending essential features with cutting-edge encryption technology, Encryptext ensures your documents are safeguarded like never before.
 
 ## Features
 
