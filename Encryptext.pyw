@@ -1,11 +1,6 @@
-#TODO
-#* 1. Change all occurences of textbox to be the current tab
-#! 2. Change the history list to work with multiple tabs
-#! 3. Change the tag list and tag_no to work with multiple tabs
-#! 4. Change font size, and font type to work with multiple tabs
-#* 5. Change save location and file extension to work with multiple tabs
-#* 6. Change the current_tab getters to have error handling when no tabs are there
-
+# Created by Sooraj
+# https://encryptext.sooraj.dev
+# Free for everyone. Forever.
 """
 Imports
 """
@@ -69,18 +64,22 @@ root.iconbitmap(getTrueFilename("app_icon.ico"))
 """
 Variables
 """
-debug = True
+debug = False
 # UPDATE MODE HERE
-update = True# UPDATE MODE HERE
+update = False# UPDATE MODE HERE
 version = "1.7.0"
+
+update_file_title = " DO NOT SAVE THIS FILE "
 
 file_save_locations = []
 file_extensions = []
 
-font_size = 11
-font_type = "Arial"
+default_font_size = 11
+default_font_type = "Arial"
 max_font_size = 96
 min_font_size = 8
+font_sizes = []
+font_type = []
 
 # Uses random random-length strings of characters to determine where formatting starts and stops# FORMAT ITEM SEPARATOR HERE
 format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
@@ -115,13 +114,13 @@ if debug:
 fernet = Fernet(encrypt_key)
 
 # Have atleast 3 versions of history
-history = ["", "", ""]
+file_histories = []
 # Set the current history version to 1 (centered)
-current_version = 1
+current_versions = []
 max_history = 50
 
-tags = []
-tag_no = 0
+file_format_tags = []
+file_format_tag_nums = []
 
 textboxes = []
 
@@ -130,7 +129,7 @@ Functions
 """
 
 def updateTags():
-    global tags
+    global file_format_tags
 
     current_tab = getCurrentTab()
     if current_tab == -1:
@@ -141,12 +140,12 @@ def updateTags():
     for tag in tags_used:
         indices = textboxes[current_tab].tag_ranges(tag)
         for start, end in zip(indices[::2], indices[1::2]):
-            tags[i][1] = str(start)
-            tags[i][2] = str(end)
+            file_format_tags[current_tab][i][1] = str(start)
+            file_format_tags[current_tab][i][2] = str(end)
 
             i += 1
 
-    formatted_tags = [format_item_separator.join(tag) for tag in tags]
+    formatted_tags = [format_item_separator.join(tag) for tag in file_format_tags[current_tab]]
     formatted_tags = format_separator.join(formatted_tags)
 
     return formatted_tags
@@ -161,17 +160,17 @@ def quitApp(Event=None):
             root.destroy()
             sys.exit()
 
-    # Check if the current textbox is empty
-    if len(textboxes[current_tab].get("1.0", tk.END)) != 1 or textboxes[current_tab].get("1.0", tk.END) != "\n":
+    # Check if any of the tab's textboxes are not empty
+    quit_confirm = True
+    for textbox in textboxes:
+        if len(textbox.get("1.0", tk.END)) != 1 or textbox.get("1.0", tk.END) != "\n":
+            quit_confirm = False
+
+    # If there's one that's not empty, then show warning
+    if not quit_confirm:
         quit_confirm = messagebox.askyesno("Quit", "Quit Encryptext?\n\nAny unsaved changes will be lost.")
-        if quit_confirm:
-            try:
-                md_preview_window.destroy()
-                pref_window.destroy()
-            finally:
-                root.destroy()
-                sys.exit()
-    else:
+
+    if quit_confirm:
         try:
             md_preview_window.destroy()
             pref_window.destroy()
@@ -181,14 +180,14 @@ def quitApp(Event=None):
 
 def openFile(Event=None, current=False):
     # Make save_location global to change it for the whole program
-    global file_save_locations, tags, history, current_version, tag_no, file_extensions
+    global file_save_locations, file_format_tags, file_histories, current_versions, file_format_tag_nums, file_extensions
 
     current_tab = getCurrentTab()
     if current_tab == -1:
         addNewTab()
 
     # Reset tag number
-    tag_no = 0
+    file_format_tag_nums[current_tab] = 0
 
     # Check if the current textbox is empty
     if len(textboxes[current_tab].get("1.0", tk.END)) > 2 and textboxes[current_tab].get("1.0", tk.END) != "\n\n" and not current:
@@ -208,7 +207,7 @@ def openFile(Event=None, current=False):
             file_name = file_save_locations[current_tab].split("/")[-1]
 
             # Set the title of the window to the file name
-            title.set(file_name)
+            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=f" {file_name} ")
 
             # Open the file and read its contents into an array
             file = open(file_save_locations[current_tab], "r")
@@ -220,8 +219,8 @@ def openFile(Event=None, current=False):
             textboxes[current_tab].delete("1.0", tk.END)
 
             # Clear the history
-            history = ["", "", ""]
-            current_version = 1
+            file_histories[current_tab] = ["", "", ""]
+            current_versions[current_tab] = 1
 
             # If the file is a .etx file, decrypt it
             if file_extensions[current_tab] == "etx":
@@ -249,9 +248,9 @@ def openFile(Event=None, current=False):
                             add = True
 
                             if formats == []:
-                                format_style[0] = f"{''.join(i for i in format_style[0] if not i.isdigit())}{tag_no}"
+                                format_style[0] = f"{''.join(i for i in format_style[0] if not i.isdigit())}{file_format_tag_nums[current_tab]}"
                                 formats.append(format_style)
-                                tag_no += 1
+                                file_format_tag_nums[current_tab] += 1
                             else:
                                 format_type = "".join(i for i in format_style[0] if not i.isdigit())
                                 for f in formats:
@@ -260,9 +259,9 @@ def openFile(Event=None, current=False):
                                         break
 
                                 if add:
-                                    format_style[0] = f"{''.join(i for i in format_style[0] if not i.isdigit())}{tag_no}"
+                                    format_style[0] = f"{''.join(i for i in format_style[0] if not i.isdigit())}{file_format_tag_nums[current_tab]}"
                                     formats.append(format_style)
-                                    tag_no += 1
+                                    file_format_tag_nums[current_tab] += 1
 
                         # Need to sort the formats list to have the bold at the end
                         # The bold has to be the last formatting to be applied otherwise it won't show up
@@ -307,7 +306,7 @@ def openFile(Event=None, current=False):
                                 elif "normal" in format[0]:
                                     textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "normal"))
 
-                            tags.append(format)
+                            file_format_tags[current_tab].append(format)
                 except Exception as e:
                     if debug:
                         messagebox.showerror("Error Opening File", format_exc())
@@ -329,7 +328,7 @@ def openFile(Event=None, current=False):
                     previewWindowCreation()
 
 def newFile(Event=None):
-    global file_save_locations, history, current_version
+    global file_save_locations, file_histories, current_versions
 
     current_tab = getCurrentTab()
     if current_tab == -1:
@@ -343,20 +342,20 @@ def newFile(Event=None):
             textboxes[current_tab].config(state=tk.NORMAL)
             textboxes[current_tab].delete("1.0", tk.END)
 
-            history = ["", "", ""]
-            current_version = 1
+            file_histories[current_tab] = ["", "", ""]
+            current_versions[current_tab] = 1
 
-            title.set("Untitled")
+            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
         else: pass
     else:
         file_save_locations[current_tab] = ""
         textboxes[current_tab].config(state=tk.NORMAL)
         textboxes[current_tab].delete("1.0", tk.END)
 
-        history = ["", "", ""]
-        current_version = 1
+        file_histories[current_tab] = ["", "", ""]
+        current_versions[current_tab] = 1
 
-        title.set("Untitled")
+        tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
 
 def saveFile(Event=None):
     current_tab = getCurrentTab()
@@ -424,68 +423,68 @@ def saveFileAs(Event=None):
         openFile(current=True)
 
 def undo(Event=None):
-    global history
+    global file_histories
 
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
     # Check if the previous version is the same as the current version
-    if history[current_version - 1] != textboxes[current_tab].get("1.0", tk.END):
+    if file_histories[current_tab][current_versions[current_tab] - 1] != textboxes[current_tab].get("1.0", tk.END):
         # Update the current version
-        history[current_version] = textboxes[current_tab].get("1.0", tk.END)
+        file_histories[current_tab][current_versions[current_tab]] = textboxes[current_tab].get("1.0", tk.END)
         # Remove the last newline character
-        history[current_version] = history[current_version][:-1]
+        file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
 
         # Check if the final version is blank
-        if history[-1] != "":
-            if len(history) - current_version < max_history:
+        if file_histories[current_tab][-1] != "":
+            if len(file_histories[current_tab]) - current_versions[current_tab] < max_history:
                 # Add a new version
-                history.append("")
+                file_histories[current_tab].append("")
 
         # Shift every version up one
-        for i in range(len(history) - 1, 0, -1):
-            history[i] = history[i - 1]
+        for i in range(len(file_histories[current_tab]) - 1, 0, -1):
+            file_histories[current_tab][i] = file_histories[current_tab][i - 1]
 
         # Clear the first version
-        history[0] = ""
+        file_histories[current_tab][0] = ""
 
         # Update the current textbox
         textboxes[current_tab].delete("1.0", tk.END)
-        textboxes[current_tab].insert(tk.END, history[current_version])
+        textboxes[current_tab].insert(tk.END, file_histories[current_tab][current_versions[current_tab]])
 
 def redo(Event=None):
-    global history, current_version
+    global file_histories, current_versions
 
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
     # Check if the next version is the same as the current version
-    if history[current_version + 1] != textboxes[current_tab].get("1.0", tk.END):
+    if file_histories[current_tab][current_versions[current_tab] + 1] != textboxes[current_tab].get("1.0", tk.END):
         # Update the current version
-        history[current_version] = textboxes[current_tab].get("1.0", tk.END)
+        file_histories[current_tab][current_versions[current_tab]] = textboxes[current_tab].get("1.0", tk.END)
         # Remove the last newline character
-        history[current_version] = history[current_version][:-1]
+        file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
 
         # Check if the first version is blank
-        if history[0] != "":
-            if current_version < max_history:
+        if file_histories[current_tab][0] != "":
+            if current_versions[current_tab] < max_history:
                 # Add a new version
-                history.insert(0, "")
+                file_histories[current_tab].insert(0, "")
                 # Update the current version
-                current_version += 1
+                current_versions[current_tab] += 1
 
         # Shift every version down one
-        for i in range(0, len(history) - 1):
-            history[i] = history[i + 1]
+        for i in range(0, len(file_histories[current_tab]) - 1):
+            file_histories[current_tab][i] = file_histories[current_tab][i + 1]
 
         # Clear the last version
-        history[-1] = ""
+        file_histories[current_tab][-1] = ""
 
         # Update the current textbox
         textboxes[current_tab].delete("1.0", tk.END)
-        textboxes[current_tab].insert(tk.END, history[current_version])
+        textboxes[current_tab].insert(tk.END, file_histories[current_tab][current_versions[current_tab]])
 
 def updatePreview(Event=None):
     current_tab = getCurrentTab()
@@ -506,25 +505,25 @@ def trackChanges(Event=None):
     if current_tab == -1:
         return None
 
-    if Event.keysym in ["space", "Return"]:
-        global history, current_version
+    if Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]:
+        global file_histories, current_versions
 
         # Check if the first version is empty
-        if history[0] != "":
-            if current_version < max_history:
+        if file_histories[current_tab][0] != "":
+            if current_versions[current_tab] < max_history:
                 # Add a new version
-                history.insert(0, "")
+                file_histories[current_tab].insert(0, "")
                 # Update the current version
-                current_version += 1
+                current_versions[current_tab] += 1
 
         # Shift every version down one
-        for i in range(0, len(history) - 1):
-            history[i] = history[i + 1]
+        for i in range(0, len(file_histories[current_tab]) - 1):
+            file_histories[current_tab][i] = file_histories[current_tab][i + 1]
 
         # Update the current version
-        history[current_version] = textboxes[current_tab].get("1.0", tk.END)
+        file_histories[current_tab][current_versions[current_tab]] = textboxes[current_tab].get("1.0", tk.END)
         # Remove the last newline character
-        history[current_version] = history[current_version][:-1]
+        file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
 
     # Update the preview
     updatePreview()
@@ -572,6 +571,11 @@ def viewingMode(Event=None):
 def editingMode(Event=None):
     current_tab = getCurrentTab()
     if current_tab == -1:
+        return None
+
+    # Don't allow the encryption key tab to be edited
+    tab_title = tab_panes.tab(tab_panes.tabs()[getCurrentTab()])["text"]
+    if tab_title == update_file_title:
         return None
 
     # Set the textbox to be writable
@@ -623,7 +627,7 @@ def updateMenu(Event=None):
     key = encrypt_key.decode()
 
     # Change the title
-    title.set("DO NOT SAVE THIS FILE")
+    tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=update_file_title)
 
     # Add the needed strings to the box
     textboxes[current_tab].delete("1.0", tk.END)
@@ -639,7 +643,7 @@ def documentation(Event=None):
     open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
 
 def changeToBold(Event=None):
-    global tag_no
+    global file_format_tag_nums
 
     current_tab = getCurrentTab()
     if current_tab == -1:
@@ -650,14 +654,14 @@ def changeToBold(Event=None):
     end_selection = textboxes[current_tab].index("sel.last")
 
     # Create a tag
-    textboxes[current_tab].tag_add(f"bold{tag_no}", start_selection, end_selection)
-    textboxes[current_tab].tag_config(f"bold{tag_no}", font=(font_type, font_size, "bold"))
-    tags.append([f"bold{tag_no}", start_selection, end_selection, font_type, str(font_size)])
+    textboxes[current_tab].tag_add(f"bold{file_format_tag_nums[current_tab]}", start_selection, end_selection)
+    textboxes[current_tab].tag_config(f"bold{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], font_sizes[current_tab], "bold"))
+    file_format_tags[current_tab].append([f"bold{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(font_sizes[current_tab])])
 
-    tag_no += 1
+    file_format_tag_nums[current_tab] += 1
 
 def changeToItalic(Event=None):
-    global tag_no
+    global file_format_tag_nums
 
     current_tab = getCurrentTab()
     if current_tab == -1:
@@ -668,14 +672,14 @@ def changeToItalic(Event=None):
     end_selection = textboxes[current_tab].index("sel.last")
 
     # Create a tag
-    textboxes[current_tab].tag_add(f"italic{tag_no}", start_selection, end_selection)
-    textboxes[current_tab].tag_config(f"italic{tag_no}", font=(font_type, font_size, "italic"))
-    tags.append([f"italic{tag_no}", start_selection, end_selection, font_type, str(font_size)])
+    textboxes[current_tab].tag_add(f"italic{file_format_tag_nums[current_tab]}", start_selection, end_selection)
+    textboxes[current_tab].tag_config(f"italic{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], font_sizes[current_tab], "italic"))
+    file_format_tags[current_tab].append([f"italic{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(font_sizes[current_tab])])
 
-    tag_no += 1
+    file_format_tag_nums[current_tab] += 1
 
 def changeToNormal(Event=None):
-    global tag_no
+    global file_format_tag_nums
 
     current_tab = getCurrentTab()
     if current_tab == -1:
@@ -686,14 +690,14 @@ def changeToNormal(Event=None):
     end_selection = textboxes[current_tab].index("sel.last")
 
     # Create a tag
-    textboxes[current_tab].tag_add(f"normal{tag_no}", start_selection, end_selection)
-    textboxes[current_tab].tag_config(f"normal{tag_no}", font=(font_type, font_size, "normal"))
-    tags.append([f"normal{tag_no}", start_selection, end_selection, font_type, str(font_size)])
+    textboxes[current_tab].tag_add(f"normal{file_format_tag_nums[current_tab]}", start_selection, end_selection)
+    textboxes[current_tab].tag_config(f"normal{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], font_sizes[current_tab], "normal"))
+    file_format_tags[current_tab].append([f"normal{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(font_sizes[current_tab])])
 
-    tag_no += 1
+    file_format_tag_nums[current_tab] += 1
 
 def changeTextColour(Event=None):
-    global tag_no
+    global file_format_tag_nums
 
     current_tab = getCurrentTab()
     if current_tab == -1:
@@ -707,58 +711,60 @@ def changeTextColour(Event=None):
     end_selection = textboxes[current_tab].index("sel.last")
 
     # Create a tag
-    textboxes[current_tab].tag_add(f"colour{tag_no}", start_selection, end_selection)
-    textboxes[current_tab].tag_config(f"colour{tag_no}", foreground=colour_code)
+    textboxes[current_tab].tag_add(f"colour{file_format_tag_nums[current_tab]}", start_selection, end_selection)
+    textboxes[current_tab].tag_config(f"colour{file_format_tag_nums[current_tab]}", foreground=colour_code)
 
-    tags.append([f"colour{tag_no}",start_selection,end_selection,colour_code,font_type,str(font_size),])
+    file_format_tags[current_tab].append([f"colour{file_format_tag_nums[current_tab]}",start_selection,end_selection,colour_code,font_type[current_tab],str(font_sizes[current_tab]),])
 
-    tag_no += 1
+    file_format_tag_nums[current_tab] += 1
 
 def increaseFont(Event=None):
-    global tag_no, font_size
+    global file_format_tag_nums, font_sizes
 
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
-    if font_size == max_font_size:
+    if font_sizes[current_tab] == max_font_size:
         messagebox.showerror("Error", "Font size cannot go higher than 96.")
     else:
-        font_size += 1
-        size = font_size
-        start_selection = textboxes[current_tab].index("sel.first")
-        end_selection = textboxes[current_tab].index("sel.last")
+        try:
+            start_selection = textboxes[current_tab].index("sel.first")
+            end_selection = textboxes[current_tab].index("sel.last")
+            textboxes[current_tab].tag_add(f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection)
 
-        # Create a tag
-        textboxes[current_tab].tag_add(f"size{tag_no}", start_selection, end_selection)
-        textboxes[current_tab].tag_config(f"size{tag_no}", font=(font_type, size))
+            font_sizes[current_tab] += 1
+            size = font_sizes[current_tab]
+            textboxes[current_tab].tag_config(f"size{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], size))
 
-        tags.append([f"size{tag_no}", start_selection, end_selection, font_type, str(size)])
-
-    tag_no += 1
+            file_format_tags[current_tab].append([f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(size)])
+            file_format_tag_nums[current_tab] += 1
+        except:
+            pass
 
 def decreaseFont(Event=None):
-    global tag_no, font_size
+    global file_format_tag_nums, font_sizes
 
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
-    if font_size == min_font_size:
+    if font_sizes[current_tab] == min_font_size:
         messagebox.showerror("Error", "Font size cannot go lower than 8.")
     else:
-        font_size -= 1
-        size = font_size
-        start_selection = textboxes[current_tab].index("sel.first")
-        end_selection = textboxes[current_tab].index("sel.last")
+        try:
+            start_selection = textboxes[current_tab].index("sel.first")
+            end_selection = textboxes[current_tab].index("sel.last")
+            textboxes[current_tab].tag_add(f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection)
 
-        # Create a tag
-        textboxes[current_tab].tag_add(f"size{tag_no}", start_selection, end_selection)
-        textboxes[current_tab].tag_config(f"size{tag_no}", font=(font_type, size))
+            font_sizes[current_tab] -= 1
+            size = font_sizes[current_tab]
+            textboxes[current_tab].tag_config(f"size{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], size))
 
-        tags.append([f"size{tag_no}", start_selection, end_selection, font_type, str(size)])
-
-    tag_no += 1
+            file_format_tags[current_tab].append([f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(size)])
+            file_format_tag_nums[current_tab] += 1
+        except:
+            pass
 
 def showQuickMenu(Event=None):
     try:
@@ -768,11 +774,17 @@ def showQuickMenu(Event=None):
 
 def addNewTab(Event=None):
     # Create new textbox
-    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(font_type, font_size, "normal"), cursor="xterm"))
+    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm"))
 
     # Create new tab info slot in arrays
     file_save_locations.append("")
     file_extensions.append("")
+    file_histories.append(["", "", ""])
+    current_versions.append(1)
+    file_format_tags.append([])
+    file_format_tag_nums.append(0)
+    font_sizes.append(default_font_size)
+    font_type.append(default_font_type)
 
     # Create scroll bar and link it
     scroll_bars = []
@@ -784,12 +796,21 @@ def addNewTab(Event=None):
 
     # Add to display
     textboxes[-1].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-    tab_panes.add(textboxes[-1], text="Untitled")
+    tab_panes.add(textboxes[-1], text=" Untitled ")
 
     # Allow right-click menu to show up
-    textboxes[-1].bind("<Button-3>", showQuickMenu)
+    # textboxes[-1].bind("<Button-3>", showQuickMenu)
 
+    # Fix Ctrl+T switching last char in textbox
+    # https://stackoverflow.com/a/54185644
+    bindtags = textboxes[-1].bindtags()
+    textboxes[-1].bindtags((bindtags[2], bindtags[0], bindtags[1], bindtags[3]))
+
+    # Sets the tab focus to the newly created tab
+    tab_panes.select(tab_panes.tabs()[-1])
     textboxes[-1].focus()
+
+    return "break"
 
 def closeCurrentTab(Event=None):
     current_tab = getCurrentTab()
@@ -801,6 +822,10 @@ def closeCurrentTab(Event=None):
     textboxes.pop(current_tab)
     file_save_locations.pop(current_tab)
     file_extensions.pop(current_tab)
+    file_histories.pop(current_tab)
+    current_versions.pop(current_tab)
+    file_format_tags.pop(current_tab)
+    file_format_tag_nums.pop(current_tab)
 
 def getCurrentTab() -> int:
     try:
@@ -811,11 +836,6 @@ def getCurrentTab() -> int:
 """
 Window Items
 """
-title = tk.StringVar()
-title.set("Untitled")
-title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center", background="#D2D2D2")
-title_of_file.pack(side=tk.TOP, fill=tk.X)
-
 tab_panes = ttk.Notebook(root, cursor="hand2", padding=5)
 tab_panes.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 tab_panes.enable_traversal()
@@ -882,7 +902,7 @@ root.bind_all("<Alt-v>", viewingMode)
 filemenu.add_separator()
 
 filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
-root.bind_all("<Control-t>", addNewTab)
+root.bind("<Control-t>", addNewTab)
 
 filemenu.add_command(label="Close Tab", accelerator="Alt+W", command=closeCurrentTab)
 root.bind_all("<Alt-w>", closeCurrentTab)
@@ -891,7 +911,7 @@ filemenu.add_separator()
 
 filemenu.add_command(label="Exit", accelerator="Ctrl+W", command=quitApp)
 root.bind_all("<Control-w>", quitApp)
-# md_preview_window.bind_all("<Control-w>", closePreview)
+md_preview_window.bind_all("<Control-w>", closePreview)
 
 # Edit menu items
 editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo)
@@ -976,13 +996,6 @@ root.config(menu=menubar)
 
 # Track document changes and update markdown preview
 root.bind('<Key>', trackChanges)
-
-if debug:
-    def tabNum(Event=None):
-        print(getCurrentTab())
-        print(len(textboxes))
-        print(textboxes[getCurrentTab()])
-    root.bind('<Alt-t>', tabNum)
 
 """
 Window Display
