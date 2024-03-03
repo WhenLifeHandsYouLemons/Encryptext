@@ -1,9 +1,13 @@
+# Created by Sooraj
+# https://encryptext.sooraj.dev
+# Free for everyone. Forever.
 """
 Imports
 """
 import sys
 from os.path import abspath, join
 import tkinter as tk
+from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import colorchooser
@@ -40,7 +44,12 @@ def previewWindowCreation(hidden=False, add_frame=True):
 
     if add_frame:
         frame = tkinterweb.HtmlFrame(md_preview_window, messages_enabled=False)
-        frame.load_html(markdown(textbox.get("1.0", tk.END)))
+
+        current_tab = getCurrentTab()
+        if current_tab == -1:
+            return None
+
+        frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
         frame.pack(fill="both", expand=True)
         md_preview_window.bind_all("<Control-e>", updatePreview)
         md_preview_window.bind_all("<Alt-P>", closePreview)
@@ -58,15 +67,19 @@ Variables
 debug = False
 # UPDATE MODE HERE
 update = False# UPDATE MODE HERE
-version = "1.6.1"
+version = "1.7.0"
 
-save_location = ""
-file_extension = ""
+update_file_title = " DO NOT SAVE THIS FILE "
 
-font_size = 11
-font_type = "Arial"
+file_save_locations = []
+file_extensions = []
+
+default_font_size = 11
+default_font_type = "Arial"
 max_font_size = 96
 min_font_size = 8
+font_sizes = []
+font_type = []
 
 # Uses random random-length strings of characters to determine where formatting starts and stops# FORMAT ITEM SEPARATOR HERE
 format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
@@ -91,53 +104,73 @@ supported_file_types = [
 # ENCRYPTION KEY HERE
 encrypt_key = b''# ENCRYPTION KEY HERE
 
+# For debug purposes, set static key and separators
 if debug:
-    encrypt_key = Fernet.generate_key()
+    encrypt_key = b'4P7ySeLwmoC61q8Nsm7SiEpGW_Y9eISDlg07f699uAo='
+    format_item_separator = "@@@"
+    format_separator = "^^^"
+    format_string = "&&&"
+
 fernet = Fernet(encrypt_key)
 
 # Have atleast 3 versions of history
-history = ["", "", ""]
+file_histories = []
 # Set the current history version to 1 (centered)
-current_version = 1
+current_versions = []
 max_history = 50
 
-tags = []
-tag_no = 0
+file_format_tags = []
+file_format_tag_nums = []
+
+textboxes = []
 
 """
 Functions
 """
 
 def updateTags():
-    global tags
+    global file_format_tags
 
-    tags_used = textbox.tag_names()
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return ""
+
+    tags_used = textboxes[current_tab].tag_names()
     i = 0
     for tag in tags_used:
-        indices = textbox.tag_ranges(tag)
+        indices = textboxes[current_tab].tag_ranges(tag)
         for start, end in zip(indices[::2], indices[1::2]):
-            tags[i][1] = str(start)
-            tags[i][2] = str(end)
+            file_format_tags[current_tab][i][1] = str(start)
+            file_format_tags[current_tab][i][2] = str(end)
 
             i += 1
 
-    formatted_tags = [format_item_separator.join(tag) for tag in tags]
+    formatted_tags = [format_item_separator.join(tag) for tag in file_format_tags[current_tab]]
     formatted_tags = format_separator.join(formatted_tags)
 
     return formatted_tags
 
 def quitApp(Event=None):
-    # Check if the textbox is empty
-    if len(textbox.get("1.0", tk.END)) != 1:
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        try:
+            md_preview_window.destroy()
+            pref_window.destroy()
+        finally:
+            root.destroy()
+            sys.exit()
+
+    # Check if any of the tab's textboxes are not empty
+    quit_confirm = True
+    for textbox in textboxes:
+        if len(textbox.get("1.0", tk.END)) != 1 or textbox.get("1.0", tk.END) != "\n":
+            quit_confirm = False
+
+    # If there's one that's not empty, then show warning
+    if not quit_confirm:
         quit_confirm = messagebox.askyesno("Quit", "Quit Encryptext?\n\nAny unsaved changes will be lost.")
-        if quit_confirm:
-            try:
-                md_preview_window.destroy()
-                pref_window.destroy()
-            finally:
-                root.destroy()
-                sys.exit()
-    else:
+
+    if quit_confirm:
         try:
             md_preview_window.destroy()
             pref_window.destroy()
@@ -147,13 +180,17 @@ def quitApp(Event=None):
 
 def openFile(Event=None, current=False):
     # Make save_location global to change it for the whole program
-    global save_location, tags, history, current_version, tag_no, file_extension
+    global file_save_locations, file_format_tags, file_histories, current_versions, file_format_tag_nums, file_extensions
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        addNewTab()
 
     # Reset tag number
-    tag_no = 0
+    file_format_tag_nums[current_tab] = 0
 
-    # Check if the textbox is empty
-    if len(textbox.get("1.0", tk.END)) != 1 and not current:
+    # Check if the current textbox is empty
+    if len(textboxes[current_tab].get("1.0", tk.END)) > 2 and textboxes[current_tab].get("1.0", tk.END) != "\n\n" and not current:
         new_file_confirm = messagebox.askyesno("Open File", "Open a file?\n\nAny unsaved changes will be lost.")
     else:
         new_file_confirm = True
@@ -161,32 +198,32 @@ def openFile(Event=None, current=False):
     if new_file_confirm:
         # Show a file selector and let user choose file
         if not current:
-            save_location = filedialog.askopenfilename(title="Select file", filetypes=supported_file_types)
+            file_save_locations[current_tab] = filedialog.askopenfilename(title="Select file", filetypes=supported_file_types)
 
-        if save_location != "":
+        if file_save_locations[current_tab] != "":
             # Get the file exntension
-            file_extension = save_location.split(".")[-1]
+            file_extensions[current_tab] = file_save_locations[current_tab].split(".")[-1]
             # Get file name
-            file_name = save_location.split("/")[-1]
+            file_name = file_save_locations[current_tab].split("/")[-1]
 
             # Set the title of the window to the file name
-            title.set(file_name)
+            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=f" {file_name} ")
 
             # Open the file and read its contents into an array
-            file = open(save_location, "r")
+            file = open(file_save_locations[current_tab], "r")
 
-            # Set the textbox to be writable
-            textbox.config(state=tk.NORMAL)
+            # Set the current textbox to be writable
+            textboxes[current_tab].config(state=tk.NORMAL)
 
-            # Clear the textbox
-            textbox.delete("1.0", tk.END)
+            # Clear the current textbox
+            textboxes[current_tab].delete("1.0", tk.END)
 
             # Clear the history
-            history = ["", "", ""]
-            current_version = 1
+            file_histories[current_tab] = ["", "", ""]
+            current_versions[current_tab] = 1
 
             # If the file is a .etx file, decrypt it
-            if file_extension == "etx":
+            if file_extensions[current_tab] == "etx":
                 try:
                     # Convert the text to bytes
                     file = bytes(file.read(), "utf-8")
@@ -211,9 +248,9 @@ def openFile(Event=None, current=False):
                             add = True
 
                             if formats == []:
-                                format_style[0] = f"{''.join(i for i in format_style[0] if not i.isdigit())}{tag_no}"
+                                format_style[0] = f"{''.join(i for i in format_style[0] if not i.isdigit())}{file_format_tag_nums[current_tab]}"
                                 formats.append(format_style)
-                                tag_no += 1
+                                file_format_tag_nums[current_tab] += 1
                             else:
                                 format_type = "".join(i for i in format_style[0] if not i.isdigit())
                                 for f in formats:
@@ -222,9 +259,9 @@ def openFile(Event=None, current=False):
                                         break
 
                                 if add:
-                                    format_style[0] = f"{''.join(i for i in format_style[0] if not i.isdigit())}{tag_no}"
+                                    format_style[0] = f"{''.join(i for i in format_style[0] if not i.isdigit())}{file_format_tag_nums[current_tab]}"
                                     formats.append(format_style)
-                                    tag_no += 1
+                                    file_format_tag_nums[current_tab] += 1
 
                         # Need to sort the formats list to have the bold at the end
                         # The bold has to be the last formatting to be applied otherwise it won't show up
@@ -245,31 +282,31 @@ def openFile(Event=None, current=False):
                     text = file[1]
                     text = text.replace("\\n", "\n")
 
-                    # Write the file contents to the textbox
+                    # Write the file contents to the current textbox
                     # Removes the extra newline that tkinter adds
-                    textbox.insert(tk.END, text[:-1])
+                    textboxes[current_tab].insert(tk.END, text[:-1])
 
                     # Add all the formatting to the text and add it to the tags list
                     if formats != []:
                         for i in range(len(formats)):
                             format = formats[i]
 
-                            textbox.tag_add(format[0], format[1], format[2])
+                            textboxes[current_tab].tag_add(format[0], format[1], format[2])
 
                             if "colour" in format[0]:
-                                textbox.tag_config(format[0], foreground=format[3])
+                                textboxes[current_tab].tag_config(format[0], foreground=format[3])
                             elif "size" in format[0]:
-                                textbox.tag_config(format[0], font=(format[3], int(format[4])))
+                                textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4])))
                             else:
                                 # Get format type
                                 if "bold" in format[0]:
-                                    textbox.tag_config(format[0], font=(format[3], int(format[4]), "bold"))
+                                    textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "bold"))
                                 elif "italic" in format[0]:
-                                    textbox.tag_config(format[0], font=(format[3], int(format[4]), "italic"))
+                                    textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "italic"))
                                 elif "normal" in format[0]:
-                                    textbox.tag_config(format[0], font=(format[3], int(format[4]), "normal"))
+                                    textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "normal"))
 
-                            tags.append(format)
+                            file_format_tags[current_tab].append(format)
                 except Exception as e:
                     if debug:
                         messagebox.showerror("Error Opening File", format_exc())
@@ -277,12 +314,12 @@ def openFile(Event=None, current=False):
                     else:
                         messagebox.showerror("Error Opening File", f"Access denied.\nPlease use the Encryptext program that you used to write this file to open it correctly.")
             else:
-                # Write the file contents to the textbox
-                textbox.insert(tk.END, file.read()[:-1])
+                # Write the file contents to the current textbox
+                textboxes[current_tab].insert(tk.END, file.read()[:-1])
 
                 # Close the file
                 file.close()
-            if file_extension == "md":
+            if file_extensions[current_tab] == "md":
                 global md_preview_window
                 try:
                     md_preview_window.deiconify()
@@ -291,41 +328,49 @@ def openFile(Event=None, current=False):
                     previewWindowCreation()
 
 def newFile(Event=None):
-    global save_location, history, current_version
+    global file_save_locations, file_histories, current_versions
 
-    # Check if the textbox is empty
-    if len(textbox.get("1.0", tk.END)) != 1:
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        addNewTab()
+
+    # Check if the current textbox is empty
+    if len(textboxes[current_tab].get("1.0", tk.END)) != 1:
         new_file_confirm = messagebox.askyesno("New File", "Create new file?\n\nAny unsaved changes will be lost.")
         if new_file_confirm:
-            save_location = ""
-            textbox.config(state=tk.NORMAL)
-            textbox.delete("1.0", tk.END)
+            file_save_locations[current_tab] = ""
+            textboxes[current_tab].config(state=tk.NORMAL)
+            textboxes[current_tab].delete("1.0", tk.END)
 
-            history = ["", "", ""]
-            current_version = 1
+            file_histories[current_tab] = ["", "", ""]
+            current_versions[current_tab] = 1
 
-            title.set("Untitled")
+            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
         else: pass
     else:
-        save_location = ""
-        textbox.config(state=tk.NORMAL)
-        textbox.delete("1.0", tk.END)
+        file_save_locations[current_tab] = ""
+        textboxes[current_tab].config(state=tk.NORMAL)
+        textboxes[current_tab].delete("1.0", tk.END)
 
-        history = ["", "", ""]
-        current_version = 1
+        file_histories[current_tab] = ["", "", ""]
+        current_versions[current_tab] = 1
 
-        title.set("Untitled")
+        tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
 
 def saveFile(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
     # If it's a new file
-    if save_location == "":
+    if file_save_locations[current_tab] == "":
         saveFileAs()
     else:
-        # Get the text from the textbox
-        text = textbox.get("1.0", tk.END)
+        # Get the text from the current textbox
+        text = textboxes[current_tab].get("1.0", tk.END)
 
         # If the file is a .etx file, encrypt it
-        if save_location.split(".")[-1] == "etx":
+        if file_save_locations[current_tab].split(".")[-1] == "etx":
             full_text = format_string.join([updateTags(), text])
             if not debug:
                 text = fernet.encrypt(full_text.encode())
@@ -338,22 +383,26 @@ def saveFile(Event=None):
             text = text[2:-1]
 
         # Write the text to the file and close it
-        file = open(save_location, "w")
+        file = open(file_save_locations[current_tab], "w")
         file.write(text)
         file.close()
 
 def saveFileAs(Event=None):
-    global save_location
+    global file_save_locations
 
-    # Get the text from the textbox
-    text = textbox.get("1.0", tk.END)
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    # Get the text from the current textbox
+    text = textboxes[current_tab].get("1.0", tk.END)
 
     # Show a file selector and let user choose file
-    save_location = filedialog.asksaveasfilename(title="Save file as", filetypes=supported_file_types, defaultextension=supported_file_types)
+    file_save_locations[current_tab] = filedialog.asksaveasfilename(title="Save file as", filetypes=supported_file_types, defaultextension=supported_file_types)
 
-    if save_location != "":
+    if file_save_locations[current_tab] != "":
         # If the file is a .etx file, encrypt it
-        if save_location.split(".")[-1] == "etx":
+        if file_save_locations[current_tab].split(".")[-1] == "etx":
             full_text = format_string.join([updateTags(), text])
             if not debug:
                 text = fernet.encrypt(full_text.encode())
@@ -366,7 +415,7 @@ def saveFileAs(Event=None):
             text = text[2:-1]
 
         # Write the text to the file and close it
-        file = open(save_location, "w")
+        file = open(file_save_locations[current_tab], "w")
         file.write(text)
         file.close()
 
@@ -374,119 +423,163 @@ def saveFileAs(Event=None):
         openFile(current=True)
 
 def undo(Event=None):
-    global history
+    global file_histories
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
 
     # Check if the previous version is the same as the current version
-    if history[current_version - 1] != textbox.get("1.0", tk.END):
+    if file_histories[current_tab][current_versions[current_tab] - 1] != textboxes[current_tab].get("1.0", tk.END):
         # Update the current version
-        history[current_version] = textbox.get("1.0", tk.END)
+        file_histories[current_tab][current_versions[current_tab]] = textboxes[current_tab].get("1.0", tk.END)
         # Remove the last newline character
-        history[current_version] = history[current_version][:-1]
+        file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
 
         # Check if the final version is blank
-        if history[-1] != "":
-            if len(history) - current_version < max_history:
+        if file_histories[current_tab][-1] != "":
+            if len(file_histories[current_tab]) - current_versions[current_tab] < max_history:
                 # Add a new version
-                history.append("")
+                file_histories[current_tab].append("")
 
         # Shift every version up one
-        for i in range(len(history) - 1, 0, -1):
-            history[i] = history[i - 1]
+        for i in range(len(file_histories[current_tab]) - 1, 0, -1):
+            file_histories[current_tab][i] = file_histories[current_tab][i - 1]
 
         # Clear the first version
-        history[0] = ""
+        file_histories[current_tab][0] = ""
 
-        # Update the textbox
-        textbox.delete("1.0", tk.END)
-        textbox.insert(tk.END, history[current_version])
+        # Update the current textbox
+        textboxes[current_tab].delete("1.0", tk.END)
+        textboxes[current_tab].insert(tk.END, file_histories[current_tab][current_versions[current_tab]])
 
 def redo(Event=None):
-    global history
-    global current_version
+    global file_histories, current_versions
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
 
     # Check if the next version is the same as the current version
-    if history[current_version + 1] != textbox.get("1.0", tk.END):
+    if file_histories[current_tab][current_versions[current_tab] + 1] != textboxes[current_tab].get("1.0", tk.END):
         # Update the current version
-        history[current_version] = textbox.get("1.0", tk.END)
+        file_histories[current_tab][current_versions[current_tab]] = textboxes[current_tab].get("1.0", tk.END)
         # Remove the last newline character
-        history[current_version] = history[current_version][:-1]
+        file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
 
         # Check if the first version is blank
-        if history[0] != "":
-            if current_version < max_history:
+        if file_histories[current_tab][0] != "":
+            if current_versions[current_tab] < max_history:
                 # Add a new version
-                history.insert(0, "")
+                file_histories[current_tab].insert(0, "")
                 # Update the current version
-                current_version += 1
+                current_versions[current_tab] += 1
 
         # Shift every version down one
-        for i in range(0, len(history) - 1):
-            history[i] = history[i + 1]
+        for i in range(0, len(file_histories[current_tab]) - 1):
+            file_histories[current_tab][i] = file_histories[current_tab][i + 1]
 
         # Clear the last version
-        history[-1] = ""
+        file_histories[current_tab][-1] = ""
 
-        # Update the textbox
-        textbox.delete("1.0", tk.END)
-        textbox.insert(tk.END, history[current_version])
+        # Update the current textbox
+        textboxes[current_tab].delete("1.0", tk.END)
+        textboxes[current_tab].insert(tk.END, file_histories[current_tab][current_versions[current_tab]])
 
 def updatePreview(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
     try:
         # Update the preview
-        frame.load_html(markdown(textbox.get("1.0", tk.END)))
+        frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
     except:
         # Only update it if it's markdown or none
-        if file_extension == "md":
+        if file_extensions[current_tab] == "md":
             # If the preview window was opened manually
             previewWindowCreation()
 
 def trackChanges(Event=None):
-    if Event.keysym in ["space", "Return"]:
-        global history, current_version
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    if Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]:
+        global file_histories, current_versions
 
         # Check if the first version is empty
-        if history[0] != "":
-            if current_version < max_history:
+        if file_histories[current_tab][0] != "":
+            if current_versions[current_tab] < max_history:
                 # Add a new version
-                history.insert(0, "")
+                file_histories[current_tab].insert(0, "")
                 # Update the current version
-                current_version += 1
+                current_versions[current_tab] += 1
 
         # Shift every version down one
-        for i in range(0, len(history) - 1):
-            history[i] = history[i + 1]
+        for i in range(0, len(file_histories[current_tab]) - 1):
+            file_histories[current_tab][i] = file_histories[current_tab][i + 1]
 
         # Update the current version
-        history[current_version] = textbox.get("1.0", tk.END)
+        file_histories[current_tab][current_versions[current_tab]] = textboxes[current_tab].get("1.0", tk.END)
         # Remove the last newline character
-        history[current_version] = history[current_version][:-1]
+        file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
 
     # Update the preview
     updatePreview()
 
 def cut(Event=None):
-    textbox.event_generate("<<Cut>>")
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    textboxes[current_tab].event_generate("<<Cut>>")
 
 def copy(Event=None):
-    textbox.event_generate("<<Copy>>")
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    textboxes[current_tab].event_generate("<<Copy>>")
 
 def paste(Event=None):
-    textbox.event_generate("<<Paste>>")
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    textboxes[current_tab].event_generate("<<Paste>>")
 
 def viewFile(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
     # Open the file
     openFile()
 
     # Set the textbox to be read-only
-    textbox.config(state=tk.DISABLED)
+    textboxes[current_tab].config(state=tk.DISABLED)
 
 def viewingMode(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
     # Set the textbox to be read-only
-    textbox.config(state=tk.DISABLED)
+    textboxes[current_tab].config(state=tk.DISABLED)
 
 def editingMode(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    # Don't allow the encryption key tab to be edited
+    tab_title = tab_panes.tab(tab_panes.tabs()[getCurrentTab()])["text"]
+    if tab_title == update_file_title:
+        return None
+
     # Set the textbox to be writable
-    textbox.config(state=tk.NORMAL)
+    textboxes[current_tab].config(state=tk.NORMAL)
 
 def openPreview(Event=None):
     try:
@@ -499,11 +592,19 @@ def closePreview(Event=None):
         md_preview_window.withdraw()
     except: pass
 
-def select_all(Event=None):
-    textbox.event_generate("<<SelectAll>>")
+def selectAll(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
 
-def deselect_all(Event=None):
-    textbox.event_generate("<<SelectNone>>")
+    textboxes[current_tab].event_generate("<<SelectAll>>")
+
+def deselectAll(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    textboxes[current_tab].event_generate("<<SelectNone>>")
 
 def openPreferences():
     global pref_window, frame
@@ -516,134 +617,231 @@ def openPreferences():
 
     pref_window.mainloop()
 
-def update_menu(Event=None):
+def updateMenu(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        addNewTab()
+
     messagebox.showinfo("Update Encryptext", """1. Run the new version's installer\n2. When it asks whether you're installing or updating, choose updating.\n3. When it asks for the old enryption key and other strings, copy and paste the ones shown in the text editor here.\n\nClick 'Ok' to view the keys.\n\nDO NOT SAVE THE DOCUMENT WITH THE KEYS.""")
 
     key = encrypt_key.decode()
 
+    # Change the title
+    tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=update_file_title)
+
     # Add the needed strings to the box
-    textbox.delete("1.0", tk.END)
-    textbox.insert("1.0", f"Encryption Key: {key}\nFormat Item Separator: {format_item_separator}\nFormat Separator String: {format_separator}\nFormat String: {format_string}")
+    textboxes[current_tab].delete("1.0", tk.END)
+    textboxes[current_tab].insert("1.0", f"Encryption Key: {key}\nFormat Item Separator: {format_item_separator}\nFormat Separator String: {format_separator}\nFormat String: {format_string}")
 
     # Enter viewing mode so that the string can't be accidentally changed
     viewingMode()
 
-def about_menu(Event=None):
+def aboutMenu(Event=None):
     messagebox.showinfo("About Encryptext", f"Unlock a new level of security and versatility with Encryptext, the text editor designed for the modern user. Seamlessly blending essential features with modern encryption technology, Encryptext ensures your documents are safeguarded like never before.\n\nFree for everyone. Forever. ❤\n\nVersion {version}")
 
 def documentation(Event=None):
     open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
 
-def bold_text_style(Event=None):
-    global tag_no
+def changeToBold(Event=None):
+    global file_format_tag_nums
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
     # Get the position of current selection
-    start_selection = textbox.index("sel.first")
-    end_selection = textbox.index("sel.last")
+    start_selection = textboxes[current_tab].index("sel.first")
+    end_selection = textboxes[current_tab].index("sel.last")
 
     # Create a tag
-    textbox.tag_add(f"bold{tag_no}", start_selection, end_selection)
-    textbox.tag_config(f"bold{tag_no}", font=(font_type, font_size, "bold"))
-    tags.append([f"bold{tag_no}", start_selection, end_selection, font_type, str(font_size)])
+    textboxes[current_tab].tag_add(f"bold{file_format_tag_nums[current_tab]}", start_selection, end_selection)
+    textboxes[current_tab].tag_config(f"bold{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], font_sizes[current_tab], "bold"))
+    file_format_tags[current_tab].append([f"bold{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(font_sizes[current_tab])])
 
-    tag_no += 1
+    file_format_tag_nums[current_tab] += 1
 
-def italic_text_style(Event=None):
-    global tag_no
+def changeToItalic(Event=None):
+    global file_format_tag_nums
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
     # Get the position of current selection
-    start_selection = textbox.index("sel.first")
-    end_selection = textbox.index("sel.last")
+    start_selection = textboxes[current_tab].index("sel.first")
+    end_selection = textboxes[current_tab].index("sel.last")
 
     # Create a tag
-    textbox.tag_add(f"italic{tag_no}", start_selection, end_selection)
-    textbox.tag_config(f"italic{tag_no}", font=(font_type, font_size, "italic"))
-    tags.append([f"italic{tag_no}", start_selection, end_selection, font_type, str(font_size)])
+    textboxes[current_tab].tag_add(f"italic{file_format_tag_nums[current_tab]}", start_selection, end_selection)
+    textboxes[current_tab].tag_config(f"italic{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], font_sizes[current_tab], "italic"))
+    file_format_tags[current_tab].append([f"italic{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(font_sizes[current_tab])])
 
-    tag_no += 1
+    file_format_tag_nums[current_tab] += 1
 
-def normal_text_style(Event=None):
-    global tag_no
+def changeToNormal(Event=None):
+    global file_format_tag_nums
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
     # Get the position of current selection
-    start_selection = textbox.index("sel.first")
-    end_selection = textbox.index("sel.last")
+    start_selection = textboxes[current_tab].index("sel.first")
+    end_selection = textboxes[current_tab].index("sel.last")
 
     # Create a tag
-    textbox.tag_add(f"normal{tag_no}", start_selection, end_selection)
-    textbox.tag_config(f"normal{tag_no}", font=(font_type, font_size, "normal"))
-    tags.append([f"normal{tag_no}", start_selection, end_selection, font_type, str(font_size)])
+    textboxes[current_tab].tag_add(f"normal{file_format_tag_nums[current_tab]}", start_selection, end_selection)
+    textboxes[current_tab].tag_config(f"normal{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], font_sizes[current_tab], "normal"))
+    file_format_tags[current_tab].append([f"normal{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(font_sizes[current_tab])])
 
-    tag_no += 1
+    file_format_tag_nums[current_tab] += 1
 
-def text_colour_change(Event=None):
-    global tag_no
+def changeTextColour(Event=None):
+    global file_format_tag_nums
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
     colour_code = colorchooser.askcolor(title="Choose a colour")
     colour_code = colour_code[-1]
 
     # Get the position of current selection
-    start_selection = textbox.index("sel.first")
-    end_selection = textbox.index("sel.last")
+    start_selection = textboxes[current_tab].index("sel.first")
+    end_selection = textboxes[current_tab].index("sel.last")
 
     # Create a tag
-    textbox.tag_add(f"colour{tag_no}", start_selection, end_selection)
-    textbox.tag_config(f"colour{tag_no}", foreground=colour_code)
+    textboxes[current_tab].tag_add(f"colour{file_format_tag_nums[current_tab]}", start_selection, end_selection)
+    textboxes[current_tab].tag_config(f"colour{file_format_tag_nums[current_tab]}", foreground=colour_code)
 
-    tags.append([f"colour{tag_no}",start_selection,end_selection,colour_code,font_type,str(font_size),])
+    file_format_tags[current_tab].append([f"colour{file_format_tag_nums[current_tab]}",start_selection,end_selection,colour_code,font_type[current_tab],str(font_sizes[current_tab]),])
 
-    tag_no += 1
+    file_format_tag_nums[current_tab] += 1
 
-def increase_font(Event=None):
-    global tag_no
-    global font_size
-    if font_size == max_font_size:
+def increaseFont(Event=None):
+    global file_format_tag_nums, font_sizes
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    if font_sizes[current_tab] == max_font_size:
         messagebox.showerror("Error", "Font size cannot go higher than 96.")
     else:
-        font_size += 1
-        size = font_size
-        start_selection = textbox.index("sel.first")
-        end_selection = textbox.index("sel.last")
+        try:
+            start_selection = textboxes[current_tab].index("sel.first")
+            end_selection = textboxes[current_tab].index("sel.last")
+            textboxes[current_tab].tag_add(f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection)
 
-        # Create a tag
-        textbox.tag_add(f"size{tag_no}", start_selection, end_selection)
-        textbox.tag_config(f"size{tag_no}", font=(font_type, size))
+            font_sizes[current_tab] += 1
+            size = font_sizes[current_tab]
+            textboxes[current_tab].tag_config(f"size{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], size))
 
-        tags.append([f"size{tag_no}", start_selection, end_selection, font_type, str(size)])
+            file_format_tags[current_tab].append([f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(size)])
+            file_format_tag_nums[current_tab] += 1
+        except:
+            pass
 
-    tag_no += 1
+def decreaseFont(Event=None):
+    global file_format_tag_nums, font_sizes
 
-def decrease_font(Event=None):
-    global tag_no
-    global font_size
-    if font_size == min_font_size:
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    if font_sizes[current_tab] == min_font_size:
         messagebox.showerror("Error", "Font size cannot go lower than 8.")
     else:
-        font_size -= 1
-        size = font_size
-        start_selection = textbox.index("sel.first")
-        end_selection = textbox.index("sel.last")
+        try:
+            start_selection = textboxes[current_tab].index("sel.first")
+            end_selection = textboxes[current_tab].index("sel.last")
+            textboxes[current_tab].tag_add(f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection)
 
-        # Create a tag
-        textbox.tag_add(f"size{tag_no}", start_selection, end_selection)
-        textbox.tag_config(f"size{tag_no}", font=(font_type, size))
+            font_sizes[current_tab] -= 1
+            size = font_sizes[current_tab]
+            textboxes[current_tab].tag_config(f"size{file_format_tag_nums[current_tab]}", font=(font_type[current_tab], size))
 
-        tags.append([f"size{tag_no}", start_selection, end_selection, font_type, str(size)])
+            file_format_tags[current_tab].append([f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(size)])
+            file_format_tag_nums[current_tab] += 1
+        except:
+            pass
 
-    tag_no += 1
+def showQuickMenu(Event=None):
+    try:
+        rightclickmenu.tk_popup(Event.x_root, Event.y_root)
+    finally:
+        rightclickmenu.grab_release()
+
+def addNewTab(Event=None):
+    # Create new textbox
+    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm"))
+
+    # Create new tab info slot in arrays
+    file_save_locations.append("")
+    file_extensions.append("")
+    file_histories.append(["", "", ""])
+    current_versions.append(1)
+    file_format_tags.append([])
+    file_format_tag_nums.append(0)
+    font_sizes.append(default_font_size)
+    font_type.append(default_font_type)
+
+    # Create scroll bar and link it
+    scroll_bars = []
+    scroll_bars.append(tk.Scrollbar(textboxes[-1], orient=tk.VERTICAL, cursor="arrow"))
+    scroll_bars[-1].pack(side=tk.RIGHT, fill=tk.Y)
+    scroll_bars[-1].config(command=textboxes[-1].yview)
+
+    textboxes[-1].config(yscrollcommand=scroll_bars[-1].set)
+
+    # Add to display
+    textboxes[-1].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+    tab_panes.add(textboxes[-1], text=" Untitled ")
+
+    # Allow right-click menu to show up
+    # textboxes[-1].bind("<Button-3>", showQuickMenu)
+
+    # Fix Ctrl+T switching last char in textbox
+    # https://stackoverflow.com/a/54185644
+    bindtags = textboxes[-1].bindtags()
+    textboxes[-1].bindtags((bindtags[2], bindtags[0], bindtags[1], bindtags[3]))
+
+    # Sets the tab focus to the newly created tab
+    tab_panes.select(tab_panes.tabs()[-1])
+    textboxes[-1].focus()
+
+    return "break"
+
+def closeCurrentTab(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    # Remove any tab info from arrays
+    tab_panes.forget(current_tab)
+    textboxes.pop(current_tab)
+    file_save_locations.pop(current_tab)
+    file_extensions.pop(current_tab)
+    file_histories.pop(current_tab)
+    current_versions.pop(current_tab)
+    file_format_tags.pop(current_tab)
+    file_format_tag_nums.pop(current_tab)
+
+def getCurrentTab() -> int:
+    try:
+        return tab_panes.index("current")
+    except: # Returns -1 if there are no tabs
+        return -1
 
 """
 Window Items
 """
-title = tk.StringVar()
-title.set("Untitled")
-title_of_file = tk.Label(textvariable=title, font=("Arial", 18, "bold"), anchor="center", background="#D2D2D2")
-title_of_file.pack(side=tk.TOP, fill=tk.X)
+tab_panes = ttk.Notebook(root, cursor="hand2", padding=5)
+tab_panes.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+tab_panes.enable_traversal()
 
-textbox = tk.Text(root, state=tk.NORMAL, font=(font_type, font_size, "normal"), cursor="xterm")
-
-scroll_bar_vertical = tk.Scrollbar(textbox, orient=tk.VERTICAL, cursor="arrow")
-scroll_bar_vertical.pack(side=tk.RIGHT, fill=tk.Y)
-scroll_bar_vertical.config(command=textbox.yview)
-
-textbox.config(yscrollcommand=scroll_bar_vertical.set)
-textbox.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+# Create the first tab
+addNewTab()
 
 # To make it more seamless
 # The preview window was the focused one before
@@ -654,6 +852,17 @@ previewWindowCreation(hidden=True)
 """
 Menu Bar
 """
+# Quick menu
+rightclickmenu = tk.Menu(root, tearoff=0)
+
+rightclickmenu.add_command(label="Cut")
+rightclickmenu.add_command(label="Copy")
+rightclickmenu.add_command(label="Paste")
+rightclickmenu.add_command(label="Reload")
+rightclickmenu.add_separator()
+rightclickmenu.add_command(label="Rename")
+
+# Top bar menu
 menubar = tk.Menu(root, tearoff=0)
 
 # Menu items
@@ -692,9 +901,17 @@ root.bind_all("<Alt-v>", viewingMode)
 
 filemenu.add_separator()
 
+filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
+root.bind("<Control-t>", addNewTab)
+
+filemenu.add_command(label="Close Tab", accelerator="Alt+W", command=closeCurrentTab)
+root.bind_all("<Alt-w>", closeCurrentTab)
+
+filemenu.add_separator()
+
 filemenu.add_command(label="Exit", accelerator="Ctrl+W", command=quitApp)
 root.bind_all("<Control-w>", quitApp)
-# md_preview_window.bind_all("<Control-w>", closePreview)
+md_preview_window.bind_all("<Control-w>", closePreview)
 
 # Edit menu items
 editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo)
@@ -713,19 +930,19 @@ editmenu.add_command(label="Paste", accelerator="Ctrl+V", command=paste)
 
 editmenu.add_separator()
 
-editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=select_all)
+editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=selectAll)
 
-editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselect_all)
-root.bind_all("<Control-A>", deselect_all)
+editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselectAll)
+root.bind_all("<Control-A>", deselectAll)
 
 editmenu.add_separator()
 
-editmenu.add_command(label="Open Markdown Preview", accelerator="Alt+P", command=openPreview)
-root.bind_all("<Alt-p>", openPreview)
+editmenu.add_command(label="Open Markdown Preview", accelerator="Ctrl+P", command=openPreview)
+root.bind_all("<Control-p>", openPreview)
 
-editmenu.add_command(label="Close Markdown Preview", accelerator="Alt+Shift+P", command=closePreview)
-root.bind_all("<Alt-P>", closePreview)
-md_preview_window.bind_all("<Alt-P>", closePreview)
+editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P", command=closePreview)
+root.bind_all("<Control-P>", closePreview)
+md_preview_window.bind_all("<Control-P>", closePreview)
 
 editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
 root.bind_all("<Control-e>", updatePreview)
@@ -738,28 +955,28 @@ editmenu.add_command(label="Edit Preferences", command=openPreferences)
 # Format menu items
 textfontmenu.add_command(label="Arial")
 
-textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increase_font)
-root.bind_all("<Control-+>", increase_font)
+textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increaseFont)
+root.bind_all("<Control-+>", increaseFont)
 
-textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decrease_font)
-root.bind_all("<Control-_>", decrease_font)
+textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decreaseFont)
+root.bind_all("<Control-_>", decreaseFont)
 
-formatmenu.add_command(label="Text Colour", accelerator="Alt+C", command=text_colour_change)
-root.bind_all("<Alt-c>", text_colour_change)
+formatmenu.add_command(label="Text Colour", accelerator="Alt+C", command=changeTextColour)
+root.bind_all("<Alt-c>", changeTextColour)
 
-textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=normal_text_style)
-root.bind_all("<Alt-n>", normal_text_style)
+textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
+root.bind_all("<Alt-n>", changeToNormal)
 
-textstylemenu.add_command(label="Bold", accelerator="Alt+B", command=bold_text_style)
-root.bind_all("<Alt-b>", bold_text_style)
+textstylemenu.add_command(label="Bold", accelerator="Alt+B", command=changeToBold)
+root.bind_all("<Alt-b>", changeToBold)
 
-textstylemenu.add_command(label="Italic", accelerator="Alt+I", command=italic_text_style)
-root.bind_all("<Alt-i>", italic_text_style)
+textstylemenu.add_command(label="Italic", accelerator="Alt+I", command=changeToItalic)
+root.bind_all("<Alt-i>", changeToItalic)
 
 if update:
-    helpmenu.add_command(label="Update Encryptext", command=update_menu)
+    helpmenu.add_command(label="Update Encryptext", command=updateMenu)
 
-helpmenu.add_command(label="About Encryptext", command=about_menu)
+helpmenu.add_command(label="About Encryptext", command=aboutMenu)
 
 helpmenu.add_command(label="Encryptext on GitHub", command=documentation)
 

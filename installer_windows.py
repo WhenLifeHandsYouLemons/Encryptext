@@ -2,13 +2,12 @@ import os
 import sys
 from subprocess import run
 from time import sleep
-import time
 from cryptography.fernet import Fernet as F
 from random import choice, randint
 from string import ascii_letters, digits
 import threading as t
 
-version = "1.6.1"
+version = "1.7.0"
 
 print("\nStarting installer...")
 print("Please wait...")
@@ -25,6 +24,7 @@ def getTrueFilename(filename):
 def appCreation():
     file_path = getTrueFilename("Encryptext-User.pyw")
     icon_path = getTrueFilename("app_icon.ico")
+    # Fix for tkinterweb not working
     # https://github.com/pyinstaller/pyinstaller/issues/6658#issuecomment-1062817361
     subproc_env = os.environ.copy()
     subproc_env.pop('TCL_LIBRARY', None)
@@ -95,7 +95,7 @@ print("\nUpdate option set!")
 if update == "u":
     print("\n\nPlease open the current version of Encryptext you have.")
     print("In the menu bar at the top, click on 'Help'. Then click on 'Update Encryptext'.\n")
-    time.sleep(5)
+    sleep(5)
 
 # Find where the encryption key is stored in the file
 file = text.split("# ENCRYPTION KEY HERE")
