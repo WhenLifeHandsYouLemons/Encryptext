@@ -64,10 +64,10 @@ root.iconbitmap(getTrueFilename("app_icon.ico"))
 """
 Variables
 """
-debug = False
+debug = True
 # UPDATE MODE HERE
-update = False# UPDATE MODE HERE
-version = "1.7.0"
+update = True# UPDATE MODE HERE
+version = "1.7.1"
 
 update_file_title = " DO NOT SAVE THIS FILE "
 
