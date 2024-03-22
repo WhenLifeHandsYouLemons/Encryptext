@@ -1,7 +1,7 @@
 from os import system
 import PyInstaller.__main__
 
-version = "1.7.0"
+version = "1.7.1"
 
 # Creates an executable file
 PyInstaller.__main__.run([
