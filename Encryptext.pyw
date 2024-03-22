@@ -1,6 +1,7 @@
-# Created by Sooraj
+# Created by Sooraj S
 # https://encryptext.sooraj.dev
 # Free for everyone. Forever.
+
 """
 Imports
 """
@@ -25,6 +26,11 @@ def getTrueFilename(filename):
     except Exception:
         base = abspath(".")
     return join(base, filename)
+
+debug = False
+# UPDATE MODE HERE
+update = False# UPDATE MODE HERE
+version = "1.7.1"
 
 """
 Window Settings
@@ -64,11 +70,6 @@ root.iconbitmap(getTrueFilename("app_icon.ico"))
 """
 Variables
 """
-debug = False
-# UPDATE MODE HERE
-update = False# UPDATE MODE HERE
-version = "1.7.0"
-
 update_file_title = " DO NOT SAVE THIS FILE "
 
 file_save_locations = []
@@ -124,6 +125,9 @@ file_format_tag_nums = []
 
 textboxes = []
 
+saved = []
+prev_key = ""
+
 """
 Functions
 """
@@ -160,10 +164,10 @@ def quitApp(Event=None):
             root.destroy()
             sys.exit()
 
-    # Check if any of the tab's textboxes are not empty
+    # Check if any of the tabs are not saved yet
     quit_confirm = True
-    for textbox in textboxes:
-        if len(textbox.get("1.0", tk.END)) != 1 or textbox.get("1.0", tk.END) != "\n":
+    for save_status in saved:
+        if save_status == False:
             quit_confirm = False
 
     # If there's one that's not empty, then show warning
@@ -186,21 +190,25 @@ def openFile(Event=None, current=False):
     if current_tab == -1:
         addNewTab()
 
-    # Reset tag number
-    file_format_tag_nums[current_tab] = 0
-
     # Check if the current textbox is empty
-    if len(textboxes[current_tab].get("1.0", tk.END)) > 2 and textboxes[current_tab].get("1.0", tk.END) != "\n\n" and not current:
-        new_file_confirm = messagebox.askyesno("Open File", "Open a file?\n\nAny unsaved changes will be lost.")
+    if len(textboxes[current_tab].get("1.0", tk.END)) > 2 and textboxes[current_tab].get("1.0", tk.END) != "\n\n" and not current and saved[current_tab] == False:
+        open_file_confirm = messagebox.askyesno("Open File", "Open a file?\n\nAny unsaved changes will be lost.")
     else:
-        new_file_confirm = True
+        open_file_confirm = True
 
-    if new_file_confirm:
+    if open_file_confirm:
         # Show a file selector and let user choose file
+        save_location = file_save_locations[current_tab]
         if not current:
-            file_save_locations[current_tab] = filedialog.askopenfilename(title="Select file", filetypes=supported_file_types)
+            save_location = filedialog.askopenfilename(title="Select file", filetypes=supported_file_types)
 
-        if file_save_locations[current_tab] != "":
+        if save_location != "":
+            # Don't change the file save location before confirming
+            file_save_locations[current_tab] = save_location
+
+            # Reset tag number
+            file_format_tag_nums[current_tab] = 0
+
             # Get the file exntension
             file_extensions[current_tab] = file_save_locations[current_tab].split(".")[-1]
             # Get file name
@@ -287,6 +295,7 @@ def openFile(Event=None, current=False):
                     textboxes[current_tab].insert(tk.END, text[:-1])
 
                     # Add all the formatting to the text and add it to the tags list
+                    file_format_tags[current_tab] = []
                     if formats != []:
                         for i in range(len(formats)):
                             format = formats[i]
@@ -307,6 +316,10 @@ def openFile(Event=None, current=False):
                                     textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "normal"))
 
                             file_format_tags[current_tab].append(format)
+
+                    # Set save status to True
+                    setSaveStatus(True, current_tab)
+
                 except Exception as e:
                     if debug:
                         messagebox.showerror("Error Opening File", format_exc())
@@ -319,6 +332,9 @@ def openFile(Event=None, current=False):
 
                 # Close the file
                 file.close()
+
+                # Set save status to True
+                setSaveStatus(True, current_tab)
             if file_extensions[current_tab] == "md":
                 global md_preview_window
                 try:
@@ -326,6 +342,10 @@ def openFile(Event=None, current=False):
                     updatePreview()
                 except:
                     previewWindowCreation()
+        else:
+            text = textboxes[current_tab].get("1.0", tk.END)
+            textboxes[current_tab].delete("1.0", tk.END)
+            textboxes[current_tab].insert(tk.END, text[:-2])
 
 def newFile(Event=None):
     global file_save_locations, file_histories, current_versions
@@ -335,27 +355,26 @@ def newFile(Event=None):
         addNewTab()
 
     # Check if the current textbox is empty
-    if len(textboxes[current_tab].get("1.0", tk.END)) != 1:
+    confirmed = False
+    if saved[current_tab] == False:
         new_file_confirm = messagebox.askyesno("New File", "Create new file?\n\nAny unsaved changes will be lost.")
         if new_file_confirm:
-            file_save_locations[current_tab] = ""
-            textboxes[current_tab].config(state=tk.NORMAL)
-            textboxes[current_tab].delete("1.0", tk.END)
-
-            file_histories[current_tab] = ["", "", ""]
-            current_versions[current_tab] = 1
-
-            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
-        else: pass
+            confirmed = True
     else:
+        confirmed = True
+
+    if confirmed:
         file_save_locations[current_tab] = ""
         textboxes[current_tab].config(state=tk.NORMAL)
         textboxes[current_tab].delete("1.0", tk.END)
 
         file_histories[current_tab] = ["", "", ""]
         current_versions[current_tab] = 1
+        setSaveStatus(True, current_tab)
 
         tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
+
+        updatePreview()
 
 def saveFile(Event=None):
     current_tab = getCurrentTab()
@@ -386,6 +405,9 @@ def saveFile(Event=None):
         file = open(file_save_locations[current_tab], "w")
         file.write(text)
         file.close()
+
+        # Set save status to True
+        setSaveStatus(True, current_tab)
 
 def saveFileAs(Event=None):
     global file_save_locations
@@ -453,6 +475,8 @@ def undo(Event=None):
         textboxes[current_tab].delete("1.0", tk.END)
         textboxes[current_tab].insert(tk.END, file_histories[current_tab][current_versions[current_tab]])
 
+        setSaveStatus(False, current_tab)
+
 def redo(Event=None):
     global file_histories, current_versions
 
@@ -486,6 +510,8 @@ def redo(Event=None):
         textboxes[current_tab].delete("1.0", tk.END)
         textboxes[current_tab].insert(tk.END, file_histories[current_tab][current_versions[current_tab]])
 
+        setSaveStatus(False, current_tab)
+
 def updatePreview(Event=None):
     current_tab = getCurrentTab()
     if current_tab == -1:
@@ -501,9 +527,19 @@ def updatePreview(Event=None):
             previewWindowCreation()
 
 def trackChanges(Event=None):
+    global prev_key
+
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
+
+    # Set save status to False if it's been changed
+    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Caps_Lock", "Shift_L", "Shift_R", "Escape", "Left", "Right", "Up", "Down", "App", "Win_L", "Win_R", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
+    cur_key = Event.keysym
+    if not (((prev_key in key_ignore[0:4]) and (cur_key in "abcdefghijklmnopqrstuvwxyz")) or (cur_key in key_ignore)):
+        setSaveStatus(False, current_tab)
+
+    prev_key = Event.keysym
 
     if Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]:
         global file_histories, current_versions
@@ -535,6 +571,8 @@ def cut(Event=None):
 
     textboxes[current_tab].event_generate("<<Cut>>")
 
+    setSaveStatus(False, current_tab)
+
 def copy(Event=None):
     current_tab = getCurrentTab()
     if current_tab == -1:
@@ -542,12 +580,16 @@ def copy(Event=None):
 
     textboxes[current_tab].event_generate("<<Copy>>")
 
+    setSaveStatus(False, current_tab)
+
 def paste(Event=None):
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
     textboxes[current_tab].event_generate("<<Paste>>")
+
+    setSaveStatus(False, current_tab)
 
 def viewFile(Event=None):
     current_tab = getCurrentTab()
@@ -660,6 +702,8 @@ def changeToBold(Event=None):
 
     file_format_tag_nums[current_tab] += 1
 
+    setSaveStatus(False, current_tab)
+
 def changeToItalic(Event=None):
     global file_format_tag_nums
 
@@ -678,6 +722,8 @@ def changeToItalic(Event=None):
 
     file_format_tag_nums[current_tab] += 1
 
+    setSaveStatus(False, current_tab)
+
 def changeToNormal(Event=None):
     global file_format_tag_nums
 
@@ -695,6 +741,8 @@ def changeToNormal(Event=None):
     file_format_tags[current_tab].append([f"normal{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(font_sizes[current_tab])])
 
     file_format_tag_nums[current_tab] += 1
+
+    setSaveStatus(False, current_tab)
 
 def changeTextColour(Event=None):
     global file_format_tag_nums
@@ -718,6 +766,8 @@ def changeTextColour(Event=None):
 
     file_format_tag_nums[current_tab] += 1
 
+    setSaveStatus(False, current_tab)
+
 def increaseFont(Event=None):
     global file_format_tag_nums, font_sizes
 
@@ -725,7 +775,7 @@ def increaseFont(Event=None):
     if current_tab == -1:
         return None
 
-    if font_sizes[current_tab] == max_font_size:
+    if font_sizes[current_tab] >= max_font_size:
         messagebox.showerror("Error", "Font size cannot go higher than 96.")
     else:
         try:
@@ -739,6 +789,8 @@ def increaseFont(Event=None):
 
             file_format_tags[current_tab].append([f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(size)])
             file_format_tag_nums[current_tab] += 1
+
+            setSaveStatus(False, current_tab)
         except:
             pass
 
@@ -749,7 +801,7 @@ def decreaseFont(Event=None):
     if current_tab == -1:
         return None
 
-    if font_sizes[current_tab] == min_font_size:
+    if font_sizes[current_tab] <= min_font_size:
         messagebox.showerror("Error", "Font size cannot go lower than 8.")
     else:
         try:
@@ -763,6 +815,8 @@ def decreaseFont(Event=None):
 
             file_format_tags[current_tab].append([f"size{file_format_tag_nums[current_tab]}", start_selection, end_selection, font_type[current_tab], str(size)])
             file_format_tag_nums[current_tab] += 1
+
+            setSaveStatus(False, current_tab)
         except:
             pass
 
@@ -774,7 +828,7 @@ def showQuickMenu(Event=None):
 
 def addNewTab(Event=None):
     # Create new textbox
-    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm"))
+    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap="word"))
 
     # Create new tab info slot in arrays
     file_save_locations.append("")
@@ -785,17 +839,17 @@ def addNewTab(Event=None):
     file_format_tag_nums.append(0)
     font_sizes.append(default_font_size)
     font_type.append(default_font_type)
+    saved.append(True)
 
     # Create scroll bar and link it
     scroll_bars = []
     scroll_bars.append(tk.Scrollbar(textboxes[-1], orient=tk.VERTICAL, cursor="arrow"))
-    scroll_bars[-1].pack(side=tk.RIGHT, fill=tk.Y)
     scroll_bars[-1].config(command=textboxes[-1].yview)
-
     textboxes[-1].config(yscrollcommand=scroll_bars[-1].set)
 
     # Add to display
-    textboxes[-1].pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+    textboxes[-1].pack(side=tk.TOP, fill=tk.BOTH)
+    scroll_bars[-1].pack(side=tk.RIGHT, fill=tk.Y)
     tab_panes.add(textboxes[-1], text=" Untitled ")
 
     # Allow right-click menu to show up
@@ -817,21 +871,42 @@ def closeCurrentTab(Event=None):
     if current_tab == -1:
         return None
 
-    # Remove any tab info from arrays
-    tab_panes.forget(current_tab)
-    textboxes.pop(current_tab)
-    file_save_locations.pop(current_tab)
-    file_extensions.pop(current_tab)
-    file_histories.pop(current_tab)
-    current_versions.pop(current_tab)
-    file_format_tags.pop(current_tab)
-    file_format_tag_nums.pop(current_tab)
+    close_tab_confirm = True
+    for save_status in saved:
+        if save_status == False:
+            close_tab_confirm = False
+
+    if not close_tab_confirm:
+        close_tab_confirm = messagebox.askyesno("Close Tab", "Close current tab?\n\nAny unsaved changes will be lost.")
+
+    if close_tab_confirm:
+        # Remove any tab info from arrays
+        tab_panes.forget(current_tab)
+        textboxes.pop(current_tab)
+        file_save_locations.pop(current_tab)
+        file_extensions.pop(current_tab)
+        file_histories.pop(current_tab)
+        current_versions.pop(current_tab)
+        file_format_tags.pop(current_tab)
+        file_format_tag_nums.pop(current_tab)
+        saved.pop(current_tab)
 
 def getCurrentTab() -> int:
     try:
         return tab_panes.index("current")
     except: # Returns -1 if there are no tabs
         return -1
+
+def setSaveStatus(save: bool, current_tab: int) -> None:
+    saved[current_tab] = save
+    cur_tab_id = tab_panes.tabs()[current_tab]
+    tab_title = tab_panes.tab(cur_tab_id)["text"]
+    if not save:
+        if "*" not in tab_title:
+            tab_panes.tab(cur_tab_id, text=f"{tab_panes.tab(cur_tab_id)['text']}*")
+    else:
+        if "*" in tab_title:
+            tab_panes.tab(cur_tab_id, text=tab_panes.tab(cur_tab_id)['text'].split("*")[0])
 
 """
 Window Items
