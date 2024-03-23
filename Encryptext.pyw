@@ -556,19 +556,22 @@ def redo(Event=None):
 
         setSaveStatus(False, current_tab)
 
-def updatePreview(Event=None):
+def updatePreview(Event=None, override=False):
     current_tab = getCurrentTab()
     if current_tab == -1:
-        return None
-
-    try:
-        # Update the preview
-        frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
-    except:
-        # Only update it if it's markdown or none
-        if file_extensions[current_tab] == "md":
-            # If the preview window was opened manually
-            previewWindowCreation()
+        try:
+            frame.load_html(markdown(""))
+        except:
+            return None
+    else:
+        try:
+            # Update the preview
+            frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
+        except:
+            # Only update it if it's markdown or none
+            if file_extensions[current_tab] == "md" and not override:
+                # If the preview window was opened manually
+                previewWindowCreation()
 
 def trackChanges(Event=None, override=False):
     global prev_key
@@ -606,7 +609,7 @@ def trackChanges(Event=None, override=False):
         file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
 
     # Update the preview
-    updatePreview()
+    updatePreview(override=True)
 
 def cut(Event=None):
     current_tab = getCurrentTab()
@@ -921,6 +924,8 @@ def addNewTab(Event=None):
     tab_panes.select(tab_panes.tabs()[-1])
     textboxes[-1].focus()
 
+    updatePreview()
+
     return "break"
 
 def closeCurrentTab(Event=None):
@@ -947,6 +952,8 @@ def closeCurrentTab(Event=None):
         file_format_tag_nums.pop(current_tab)
         saved.pop(current_tab)
 
+    updatePreview()
+
 def getCurrentTab() -> int:
     try:
         return tab_panes.index("current")
@@ -970,6 +977,7 @@ Window Items
 tab_panes = ttk.Notebook(root, cursor="hand2", padding=5)
 tab_panes.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 tab_panes.enable_traversal()
+tab_panes.bind("<<NotebookTabChanged>>", updatePreview) # https://stackoverflow.com/a/44092163
 
 # Create the first tab
 addNewTab()
@@ -1083,21 +1091,21 @@ editmenu.add_command(label="Edit Preferences", command=openPreferences)
 textfontmenu.add_command(label="Arial")
 
 textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increaseFont)
-root.bind_all("<Control-+>", increaseFont)
+tab_panes.bind_all("<Control-+>", increaseFont)
 
 textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decreaseFont)
-root.bind_all("<Control-_>", decreaseFont)
+tab_panes.bind_all("<Control-_>", decreaseFont)
 
 formatmenu.add_command(label="Text Colour", command=changeTextColour)
 
 textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
-root.bind_all("<Alt-n>", changeToNormal)
+tab_panes.bind_all("<Alt-n>", changeToNormal)
 
 textstylemenu.add_command(label="Bold", accelerator="Ctrl+B", command=changeToBold)
-root.bind_all("<Control-b>", changeToBold)
+tab_panes.bind_all("<Control-b>", changeToBold)
 
 textstylemenu.add_command(label="Italic", accelerator="Ctrl+I", command=changeToItalic)
-root.bind("<Control-i>", changeToItalic)
+tab_panes.bind("<Control-i>", changeToItalic)
 
 if update:
     helpmenu.add_command(label="Update Encryptext", command=updateMenu)
