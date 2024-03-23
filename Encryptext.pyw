@@ -33,6 +33,32 @@ update = False# UPDATE MODE HERE
 version = "1.7.2"
 
 """
+Custom Classes
+"""
+# From: https://stackoverflow.com/a/40618152/11106801
+class CustomText(tk.Text):
+    def __init__(self, *args, **kwargs):
+        """A text widget that report on internal widget commands"""
+        tk.Text.__init__(self, *args, **kwargs)
+
+        # create a proxy for the underlying widget
+        self._orig = self._w + "_orig"
+        self.tk.call("rename", self._w, self._orig)
+        self.tk.createcommand(self._w, self._proxy)
+
+    def _proxy(self, command, *args):
+        cmd = (self._orig, command) + args
+        try:
+            result = self.tk.call(cmd)
+        except:
+            result = ""
+
+        if command in ("insert", "delete", "replace"):
+            self.event_generate("<<TextModified>>")
+
+        return result
+
+"""
 Window Settings
 """
 # Create the window
@@ -425,6 +451,8 @@ def saveFile(Event=None):
         # Set save status to True
         setSaveStatus(True, current_tab)
 
+        trackChanges(override=True)
+
 def saveFileAs(Event=None):
     global file_save_locations
 
@@ -542,7 +570,7 @@ def updatePreview(Event=None):
             # If the preview window was opened manually
             previewWindowCreation()
 
-def trackChanges(Event=None):
+def trackChanges(Event=None, override=False):
     global prev_key
 
     current_tab = getCurrentTab()
@@ -550,14 +578,14 @@ def trackChanges(Event=None):
         return None
 
     # Set save status to False if it's been changed
-    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Caps_Lock", "Shift_L", "Shift_R", "Escape", "Left", "Right", "Up", "Down", "App", "Win_L", "Win_R", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
+    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R"]
     cur_key = Event.keysym
-    if not (((prev_key in key_ignore[0:4]) and (cur_key in "abcdefghijklmnopqrstuvwxyz")) or (cur_key in key_ignore)):
+    if not (((prev_key in key_ignore) and (cur_key in "abcdefghijklmnopqrstuvwxyz")) or (cur_key in key_ignore)):
         setSaveStatus(False, current_tab)
 
     prev_key = Event.keysym
 
-    if Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]:
+    if (Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]) or (override):
         global file_histories, current_versions
 
         # Check if the first version is empty
@@ -854,7 +882,7 @@ def showQuickMenu(Event=None):
 
 def addNewTab(Event=None):
     # Create new textbox
-    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap="word"))
+    textboxes.append(CustomText(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap="word"))
 
     # Create new tab info slot in arrays
     file_save_locations.append("")
@@ -886,6 +914,9 @@ def addNewTab(Event=None):
     bindtags = textboxes[-1].bindtags()
     textboxes[-1].bindtags((bindtags[2], bindtags[0], bindtags[1], bindtags[3]))
 
+    # Track document changes and update markdown preview
+    textboxes[-1].bind('<<TextModified>>', trackChanges)
+
     # Sets the tab focus to the newly created tab
     tab_panes.select(tab_panes.tabs()[-1])
     textboxes[-1].focus()
@@ -898,9 +929,8 @@ def closeCurrentTab(Event=None):
         quitApp()
 
     close_tab_confirm = True
-    for save_status in saved:
-        if save_status == False:
-            close_tab_confirm = False
+    if saved[current_tab] == False:
+        close_tab_confirm = False
 
     if not close_tab_confirm:
         close_tab_confirm = messagebox.askyesno("Close Tab", "Close current tab?\n\nAny unsaved changes will be lost.")
@@ -954,14 +984,14 @@ previewWindowCreation(hidden=True)
 Menu Bar
 """
 # Quick menu
-# rightclickmenu = tk.Menu(root, tearoff=0)
+rightclickmenu = tk.Menu(root, tearoff=0)
 
-# rightclickmenu.add_command(label="Cut")
-# rightclickmenu.add_command(label="Copy")
-# rightclickmenu.add_command(label="Paste")
-# rightclickmenu.add_command(label="Reload")
-# rightclickmenu.add_separator()
-# rightclickmenu.add_command(label="Rename")
+rightclickmenu.add_command(label="Cut")
+rightclickmenu.add_command(label="Copy")
+rightclickmenu.add_command(label="Paste")
+rightclickmenu.add_command(label="Reload")
+rightclickmenu.add_separator()
+rightclickmenu.add_command(label="Rename")
 
 # Top bar menu
 menubar = tk.Menu(root, tearoff=0)
@@ -1089,9 +1119,6 @@ menubar.add_cascade(label="Help", menu=helpmenu)
 
 # Display the menu bar
 root.config(menu=menubar)
-
-# Track document changes and update markdown preview
-root.bind('<Key>', trackChanges)
 
 """
 Window Display
