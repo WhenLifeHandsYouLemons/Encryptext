@@ -10,17 +10,12 @@
     "maxRecentFiles": 5,
     "otherSettings": {
         "theme": "light",
-        "language": "en-US",
+        "language": "English (UK)",
         "autoSave": false,
         "backupInterval": 15,
         "showLineNumbers": false,
         "wrapLines": true,
         "highlightActiveLine": false,
-        "keyboardShortcuts": {
-            "save": "Ctrl+S",
-            "open": "Ctrl+O",
-            "copy": "Ctrl+C",
-            "paste": "Ctrl+V"
-        }
+        "closeAllTabs": false
     }
 }

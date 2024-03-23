@@ -30,7 +30,33 @@ def getTrueFilename(filename):
 debug = False
 # UPDATE MODE HERE
 update = False# UPDATE MODE HERE
-version = "1.7.1"
+version = "1.7.2"
+
+"""
+Custom Classes
+"""
+# From: https://stackoverflow.com/a/40618152/11106801
+class CustomText(tk.Text):
+    def __init__(self, *args, **kwargs):
+        """A text widget that report on internal widget commands"""
+        tk.Text.__init__(self, *args, **kwargs)
+
+        # create a proxy for the underlying widget
+        self._orig = self._w + "_orig"
+        self.tk.call("rename", self._w, self._orig)
+        self.tk.createcommand(self._w, self._proxy)
+
+    def _proxy(self, command, *args):
+        cmd = (self._orig, command) + args
+        try:
+            result = self.tk.call(cmd)
+        except:
+            result = ""
+
+        if command in ("insert", "delete", "replace"):
+            self.event_generate("<<TextModified>>")
+
+        return result
 
 """
 Window Settings
@@ -346,6 +372,22 @@ def openFile(Event=None, current=False):
             text = textboxes[current_tab].get("1.0", tk.END)
             textboxes[current_tab].delete("1.0", tk.END)
             textboxes[current_tab].insert(tk.END, text[:-2])
+            for i in range(len(file_format_tags[current_tab])):
+                format = file_format_tags[current_tab][i]
+                textboxes[current_tab].tag_add(format[0], format[1], format[2])
+
+                if "colour" in format[0]:
+                    textboxes[current_tab].tag_config(format[0], foreground=format[3])
+                elif "size" in format[0]:
+                    textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4])))
+                else:
+                    # Get format type
+                    if "bold" in format[0]:
+                        textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "bold"))
+                    elif "italic" in format[0]:
+                        textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "italic"))
+                    elif "normal" in format[0]:
+                        textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "normal"))
 
 def newFile(Event=None):
     global file_save_locations, file_histories, current_versions
@@ -408,6 +450,8 @@ def saveFile(Event=None):
 
         # Set save status to True
         setSaveStatus(True, current_tab)
+
+        trackChanges(override=True)
 
 def saveFileAs(Event=None):
     global file_save_locations
@@ -512,21 +556,24 @@ def redo(Event=None):
 
         setSaveStatus(False, current_tab)
 
-def updatePreview(Event=None):
+def updatePreview(Event=None, override=False):
     current_tab = getCurrentTab()
     if current_tab == -1:
-        return None
+        try:
+            frame.load_html(markdown(""))
+        except:
+            return None
+    else:
+        try:
+            # Update the preview
+            frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
+        except:
+            # Only update it if it's markdown or none
+            if file_extensions[current_tab] == "md" and not override:
+                # If the preview window was opened manually
+                previewWindowCreation()
 
-    try:
-        # Update the preview
-        frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
-    except:
-        # Only update it if it's markdown or none
-        if file_extensions[current_tab] == "md":
-            # If the preview window was opened manually
-            previewWindowCreation()
-
-def trackChanges(Event=None):
+def trackChanges(Event=None, override=False):
     global prev_key
 
     current_tab = getCurrentTab()
@@ -534,14 +581,14 @@ def trackChanges(Event=None):
         return None
 
     # Set save status to False if it's been changed
-    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Caps_Lock", "Shift_L", "Shift_R", "Escape", "Left", "Right", "Up", "Down", "App", "Win_L", "Win_R", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"]
+    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R"]
     cur_key = Event.keysym
-    if not (((prev_key in key_ignore[0:4]) and (cur_key in "abcdefghijklmnopqrstuvwxyz")) or (cur_key in key_ignore)):
+    if not (((prev_key in key_ignore) and (cur_key in "abcdefghijklmnopqrstuvwxyz")) or (cur_key in key_ignore)):
         setSaveStatus(False, current_tab)
 
     prev_key = Event.keysym
 
-    if Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]:
+    if (Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]) or (override):
         global file_histories, current_versions
 
         # Check if the first version is empty
@@ -562,7 +609,7 @@ def trackChanges(Event=None):
         file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
 
     # Update the preview
-    updatePreview()
+    updatePreview(override=True)
 
 def cut(Event=None):
     current_tab = getCurrentTab()
@@ -704,6 +751,8 @@ def changeToBold(Event=None):
 
     setSaveStatus(False, current_tab)
 
+    return "break"
+
 def changeToItalic(Event=None):
     global file_format_tag_nums
 
@@ -724,6 +773,8 @@ def changeToItalic(Event=None):
 
     setSaveStatus(False, current_tab)
 
+    return "break"
+
 def changeToNormal(Event=None):
     global file_format_tag_nums
 
@@ -743,6 +794,8 @@ def changeToNormal(Event=None):
     file_format_tag_nums[current_tab] += 1
 
     setSaveStatus(False, current_tab)
+
+    return "break"
 
 def changeTextColour(Event=None):
     global file_format_tag_nums
@@ -768,6 +821,8 @@ def changeTextColour(Event=None):
 
     setSaveStatus(False, current_tab)
 
+    return "break"
+
 def increaseFont(Event=None):
     global file_format_tag_nums, font_sizes
 
@@ -791,8 +846,9 @@ def increaseFont(Event=None):
             file_format_tag_nums[current_tab] += 1
 
             setSaveStatus(False, current_tab)
-        except:
-            pass
+        except: pass
+
+    return "break"
 
 def decreaseFont(Event=None):
     global file_format_tag_nums, font_sizes
@@ -817,8 +873,9 @@ def decreaseFont(Event=None):
             file_format_tag_nums[current_tab] += 1
 
             setSaveStatus(False, current_tab)
-        except:
-            pass
+        except: pass
+
+    return "break"
 
 def showQuickMenu(Event=None):
     try:
@@ -828,7 +885,7 @@ def showQuickMenu(Event=None):
 
 def addNewTab(Event=None):
     # Create new textbox
-    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap="word"))
+    textboxes.append(CustomText(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap="word"))
 
     # Create new tab info slot in arrays
     file_save_locations.append("")
@@ -860,21 +917,25 @@ def addNewTab(Event=None):
     bindtags = textboxes[-1].bindtags()
     textboxes[-1].bindtags((bindtags[2], bindtags[0], bindtags[1], bindtags[3]))
 
+    # Track document changes and update markdown preview
+    textboxes[-1].bind('<<TextModified>>', trackChanges)
+
     # Sets the tab focus to the newly created tab
     tab_panes.select(tab_panes.tabs()[-1])
     textboxes[-1].focus()
+
+    updatePreview()
 
     return "break"
 
 def closeCurrentTab(Event=None):
     current_tab = getCurrentTab()
     if current_tab == -1:
-        return None
+        quitApp()
 
     close_tab_confirm = True
-    for save_status in saved:
-        if save_status == False:
-            close_tab_confirm = False
+    if saved[current_tab] == False:
+        close_tab_confirm = False
 
     if not close_tab_confirm:
         close_tab_confirm = messagebox.askyesno("Close Tab", "Close current tab?\n\nAny unsaved changes will be lost.")
@@ -890,6 +951,8 @@ def closeCurrentTab(Event=None):
         file_format_tags.pop(current_tab)
         file_format_tag_nums.pop(current_tab)
         saved.pop(current_tab)
+
+    updatePreview()
 
 def getCurrentTab() -> int:
     try:
@@ -914,6 +977,7 @@ Window Items
 tab_panes = ttk.Notebook(root, cursor="hand2", padding=5)
 tab_panes.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 tab_panes.enable_traversal()
+tab_panes.bind("<<NotebookTabChanged>>", updatePreview) # https://stackoverflow.com/a/44092163
 
 # Create the first tab
 addNewTab()
@@ -963,8 +1027,7 @@ filemenu.add_separator()
 filemenu.add_command(label="Save", accelerator="Ctrl+S", command=saveFile)
 root.bind_all("<Control-s>", saveFile)
 
-filemenu.add_command(label="Save As", accelerator="Ctrl+Shift+S", command=saveFileAs)
-root.bind_all("<Control-S>", saveFileAs)
+filemenu.add_command(label="Save As", command=saveFileAs)
 
 filemenu.add_separator()
 
@@ -979,13 +1042,12 @@ filemenu.add_separator()
 filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
 root.bind("<Control-t>", addNewTab)
 
-filemenu.add_command(label="Close Tab", accelerator="Alt+W", command=closeCurrentTab)
-root.bind_all("<Alt-w>", closeCurrentTab)
+filemenu.add_command(label="Close Tab", accelerator="Ctrl+W", command=closeCurrentTab)
+root.bind_all("<Control-w>", closeCurrentTab)
 
 filemenu.add_separator()
 
-filemenu.add_command(label="Exit", accelerator="Ctrl+W", command=quitApp)
-root.bind_all("<Control-w>", quitApp)
+filemenu.add_command(label="Exit", command=quitApp)
 md_preview_window.bind_all("<Control-w>", closePreview)
 
 # Edit menu items
@@ -1019,9 +1081,7 @@ editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P",
 root.bind_all("<Control-P>", closePreview)
 md_preview_window.bind_all("<Control-P>", closePreview)
 
-editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
-root.bind_all("<Control-e>", updatePreview)
-md_preview_window.bind_all("<Control-e>", updatePreview)
+editmenu.add_command(label="Update Markdown Preview", command=updatePreview)
 
 editmenu.add_separator()
 
@@ -1031,22 +1091,21 @@ editmenu.add_command(label="Edit Preferences", command=openPreferences)
 textfontmenu.add_command(label="Arial")
 
 textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increaseFont)
-root.bind_all("<Control-+>", increaseFont)
+tab_panes.bind_all("<Control-+>", increaseFont)
 
 textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decreaseFont)
-root.bind_all("<Control-_>", decreaseFont)
+tab_panes.bind_all("<Control-_>", decreaseFont)
 
-formatmenu.add_command(label="Text Colour", accelerator="Alt+C", command=changeTextColour)
-root.bind_all("<Alt-c>", changeTextColour)
+formatmenu.add_command(label="Text Colour", command=changeTextColour)
 
 textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
-root.bind_all("<Alt-n>", changeToNormal)
+tab_panes.bind_all("<Alt-n>", changeToNormal)
 
-textstylemenu.add_command(label="Bold", accelerator="Alt+B", command=changeToBold)
-root.bind_all("<Alt-b>", changeToBold)
+textstylemenu.add_command(label="Bold", accelerator="Ctrl+B", command=changeToBold)
+tab_panes.bind_all("<Control-b>", changeToBold)
 
-textstylemenu.add_command(label="Italic", accelerator="Alt+I", command=changeToItalic)
-root.bind_all("<Alt-i>", changeToItalic)
+textstylemenu.add_command(label="Italic", accelerator="Ctrl+I", command=changeToItalic)
+tab_panes.bind("<Control-i>", changeToItalic)
 
 if update:
     helpmenu.add_command(label="Update Encryptext", command=updateMenu)
@@ -1068,9 +1127,6 @@ menubar.add_cascade(label="Help", menu=helpmenu)
 
 # Display the menu bar
 root.config(menu=menubar)
-
-# Track document changes and update markdown preview
-root.bind('<Key>', trackChanges)
 
 """
 Window Display
