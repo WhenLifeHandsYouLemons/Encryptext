@@ -720,6 +720,8 @@ def changeToBold(Event=None):
 
     setSaveStatus(False, current_tab)
 
+    return "break"
+
 def changeToItalic(Event=None):
     global file_format_tag_nums
 
@@ -740,6 +742,8 @@ def changeToItalic(Event=None):
 
     setSaveStatus(False, current_tab)
 
+    return "break"
+
 def changeToNormal(Event=None):
     global file_format_tag_nums
 
@@ -759,6 +763,8 @@ def changeToNormal(Event=None):
     file_format_tag_nums[current_tab] += 1
 
     setSaveStatus(False, current_tab)
+
+    return "break"
 
 def changeTextColour(Event=None):
     global file_format_tag_nums
@@ -784,6 +790,8 @@ def changeTextColour(Event=None):
 
     setSaveStatus(False, current_tab)
 
+    return "break"
+
 def increaseFont(Event=None):
     global file_format_tag_nums, font_sizes
 
@@ -807,8 +815,9 @@ def increaseFont(Event=None):
             file_format_tag_nums[current_tab] += 1
 
             setSaveStatus(False, current_tab)
-        except:
-            pass
+        except: pass
+
+    return "break"
 
 def decreaseFont(Event=None):
     global file_format_tag_nums, font_sizes
@@ -833,8 +842,9 @@ def decreaseFont(Event=None):
             file_format_tag_nums[current_tab] += 1
 
             setSaveStatus(False, current_tab)
-        except:
-            pass
+        except: pass
+
+    return "break"
 
 def showQuickMenu(Event=None):
     try:
@@ -885,7 +895,7 @@ def addNewTab(Event=None):
 def closeCurrentTab(Event=None):
     current_tab = getCurrentTab()
     if current_tab == -1:
-        return None
+        quitApp()
 
     close_tab_confirm = True
     for save_status in saved:
@@ -944,14 +954,14 @@ previewWindowCreation(hidden=True)
 Menu Bar
 """
 # Quick menu
-rightclickmenu = tk.Menu(root, tearoff=0)
+# rightclickmenu = tk.Menu(root, tearoff=0)
 
-rightclickmenu.add_command(label="Cut")
-rightclickmenu.add_command(label="Copy")
-rightclickmenu.add_command(label="Paste")
-rightclickmenu.add_command(label="Reload")
-rightclickmenu.add_separator()
-rightclickmenu.add_command(label="Rename")
+# rightclickmenu.add_command(label="Cut")
+# rightclickmenu.add_command(label="Copy")
+# rightclickmenu.add_command(label="Paste")
+# rightclickmenu.add_command(label="Reload")
+# rightclickmenu.add_separator()
+# rightclickmenu.add_command(label="Rename")
 
 # Top bar menu
 menubar = tk.Menu(root, tearoff=0)
@@ -979,8 +989,7 @@ filemenu.add_separator()
 filemenu.add_command(label="Save", accelerator="Ctrl+S", command=saveFile)
 root.bind_all("<Control-s>", saveFile)
 
-filemenu.add_command(label="Save As", accelerator="Ctrl+Shift+S", command=saveFileAs)
-root.bind_all("<Control-S>", saveFileAs)
+filemenu.add_command(label="Save As", command=saveFileAs)
 
 filemenu.add_separator()
 
@@ -995,13 +1004,12 @@ filemenu.add_separator()
 filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
 root.bind("<Control-t>", addNewTab)
 
-filemenu.add_command(label="Close Tab", accelerator="Alt+W", command=closeCurrentTab)
-root.bind_all("<Alt-w>", closeCurrentTab)
+filemenu.add_command(label="Close Tab", accelerator="Ctrl+W", command=closeCurrentTab)
+root.bind_all("<Control-w>", closeCurrentTab)
 
 filemenu.add_separator()
 
-filemenu.add_command(label="Exit", accelerator="Ctrl+W", command=quitApp)
-root.bind_all("<Control-w>", quitApp)
+filemenu.add_command(label="Exit", command=quitApp)
 md_preview_window.bind_all("<Control-w>", closePreview)
 
 # Edit menu items
@@ -1035,9 +1043,7 @@ editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P",
 root.bind_all("<Control-P>", closePreview)
 md_preview_window.bind_all("<Control-P>", closePreview)
 
-editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
-root.bind_all("<Control-e>", updatePreview)
-md_preview_window.bind_all("<Control-e>", updatePreview)
+editmenu.add_command(label="Update Markdown Preview", command=updatePreview)
 
 editmenu.add_separator()
 
@@ -1052,17 +1058,16 @@ root.bind_all("<Control-+>", increaseFont)
 textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decreaseFont)
 root.bind_all("<Control-_>", decreaseFont)
 
-formatmenu.add_command(label="Text Colour", accelerator="Alt+C", command=changeTextColour)
-root.bind_all("<Alt-c>", changeTextColour)
+formatmenu.add_command(label="Text Colour", command=changeTextColour)
 
 textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
 root.bind_all("<Alt-n>", changeToNormal)
 
-textstylemenu.add_command(label="Bold", accelerator="Alt+B", command=changeToBold)
-root.bind_all("<Alt-b>", changeToBold)
+textstylemenu.add_command(label="Bold", accelerator="Ctrl+B", command=changeToBold)
+root.bind_all("<Control-b>", changeToBold)
 
-textstylemenu.add_command(label="Italic", accelerator="Alt+I", command=changeToItalic)
-root.bind_all("<Alt-i>", changeToItalic)
+textstylemenu.add_command(label="Italic", accelerator="Ctrl+I", command=changeToItalic)
+root.bind("<Control-i>", changeToItalic)
 
 if update:
     helpmenu.add_command(label="Update Encryptext", command=updateMenu)
