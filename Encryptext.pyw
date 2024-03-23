@@ -30,7 +30,7 @@ def getTrueFilename(filename):
 debug = False
 # UPDATE MODE HERE
 update = False# UPDATE MODE HERE
-version = "1.7.1"
+version = "1.7.2"
 
 """
 Window Settings
@@ -346,6 +346,22 @@ def openFile(Event=None, current=False):
             text = textboxes[current_tab].get("1.0", tk.END)
             textboxes[current_tab].delete("1.0", tk.END)
             textboxes[current_tab].insert(tk.END, text[:-2])
+            for i in range(len(file_format_tags[current_tab])):
+                format = file_format_tags[current_tab][i]
+                textboxes[current_tab].tag_add(format[0], format[1], format[2])
+
+                if "colour" in format[0]:
+                    textboxes[current_tab].tag_config(format[0], foreground=format[3])
+                elif "size" in format[0]:
+                    textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4])))
+                else:
+                    # Get format type
+                    if "bold" in format[0]:
+                        textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "bold"))
+                    elif "italic" in format[0]:
+                        textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "italic"))
+                    elif "normal" in format[0]:
+                        textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "normal"))
 
 def newFile(Event=None):
     global file_save_locations, file_histories, current_versions
