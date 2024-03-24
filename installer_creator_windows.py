@@ -1,7 +1,7 @@
 from os import system
 import PyInstaller.__main__
 
-version = "1.7.2"
+version = "1.7.3"
 
 # Creates an executable file
 PyInstaller.__main__.run([
@@ -20,10 +20,9 @@ PyInstaller.__main__.run([
     "tkinterweb"
 ])
 
-# Moves the exe out of the dist folder
+# Move the exe out of the dist folder
 system(f"move dist\\installer_windows.exe encryptext_installer_v{version}_64bit.exe")
 
-# Removes the "build" folder
+# Remove pyinstaller folders
 system("rmdir /s /q build")
-# Removes the "dist" folder
 system("rmdir /s /q dist")

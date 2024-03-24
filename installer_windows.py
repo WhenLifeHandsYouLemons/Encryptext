@@ -1,16 +1,21 @@
 import os
+import shutil
 import sys
 from subprocess import run
 from time import sleep
+import json
 from cryptography.fernet import Fernet as F
 from random import choice, randint
 from string import ascii_letters, digits
 import threading as t
 
-version = "1.7.2"
+version = "1.7.3"
 
 print("\nStarting installer...")
 print("Please wait...")
+
+home_dir = os.path.expanduser("~")
+dir_path = os.path.join(home_dir, ".encryptext")
 
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
@@ -22,7 +27,7 @@ def getTrueFilename(filename):
 
 # Creates an executable file
 def appCreation():
-    file_path = getTrueFilename("Encryptext-User.pyw")
+    file_path = os.path.join(dir_path, "Encryptext-User.pyw")
     icon_path = getTrueFilename("app_icon.ico")
     # Fix for tkinterweb not working
     # https://github.com/pyinstaller/pyinstaller/issues/6658#issuecomment-1062817361
@@ -51,7 +56,12 @@ def appCreation():
     ]
     # Redirect both stdout and stderr to /dev/null or NUL depending on the platform
     with open(os.devnull, 'w') as null_file:
-        run(command, shell=True, env=subproc_env, stdout=null_file, stderr=null_file)
+        run(command,
+            shell=True,
+            env=subproc_env,
+            stdout=null_file,
+            stderr=null_file,
+            cwd=dir_path)
 
 # https://stackoverflow.com/a/34325723
 # Print iterations progress
@@ -185,10 +195,50 @@ text = "".join(file)
 
 print("Format strings set!")
 
+# Removes the install files from any previous installations to not cause issues
+try:
+    os.remove(os.path.join(dir_path, "Encryptext.spec"))
+    os.remove(os.path.join(dir_path, "Encryptext-User.pyw"))
+    os.rmdir(os.path.join(dir_path, "dist"))
+    os.rmdir(os.path.join(dir_path, "build"))
+except: pass
+
 # Write the file back to the Encryptext.py file
-file = open(getTrueFilename("Encryptext-User.pyw"), "w", encoding="utf8")
-file.write(text)
-file.close()
+os.makedirs(dir_path, exist_ok=True)
+with open(os.path.join(dir_path, "Encryptext-User.pyw"), "w", encoding="utf8") as file:
+    file.write(text)
+
+# Define the data to save
+data = {
+    "version": version,
+    "recentFilePaths": [
+        "/path/to/file1",
+        "/path/to/file2",
+        "/path/to/file3",
+        "/path/to/file4",
+        "/path/to/file5"
+    ],
+    "maxRecentFiles": 5,
+    "otherSettings": {
+        "theme": "light",
+        "language": "English",
+        "autoSave": False,
+        "backupInterval": 15,
+        "showLineNumbers": False,
+        "wrapLines": True,
+        "highlightActiveLine": False,
+        "closeAllTabs": False
+    }
+}
+
+# Get the current user's home directory
+file_path = os.path.join(dir_path, "settings.json")
+
+# Write JSON data
+with open(file_path, 'w') as file:
+    json.dump(data, file)
+
+print("Created data files!")
 
 print("Building custom program...\n\n")
 
@@ -215,16 +265,15 @@ app_thread.join()
 printProgressBar(i+1, l, prefix='Progress:', suffix='Complete', length=50, printEnd='')
 
 # Moves the exe out of the dist folder
-os.system(f"move dist\\Encryptext.exe Encryptext_v{version}.exe >nul")
+os.rename(os.path.join(dir_path, "dist", "Encryptext.exe"), f"Encryptext_v{version}.exe")
 
 print("\n\nCreated program!")
 print("Cleaning up...")
 
-# Removes the "dist" folder
-os.system("rmdir /s /q dist")
-# Removes the "build" folder
-os.system("rmdir /s /q build")
-# Removes the "Encryptext.spec" file
-os.system("del Encryptext.spec")
+# Removes the files from pyinstaller
+os.rmdir(os.path.join(dir_path, "dist"))
+shutil.rmtree(os.path.join(dir_path, "build"))
+os.remove(os.path.join(dir_path, "Encryptext.spec"))
+os.remove(os.path.join(dir_path, "Encryptext-User.pyw"))
 
 input("\nCompleted! Press enter to finish setup...")
