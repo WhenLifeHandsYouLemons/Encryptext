@@ -30,7 +30,7 @@ def getTrueFilename(filename):
 debug = False
 # UPDATE MODE HERE
 update = False# UPDATE MODE HERE
-version = "1.7.2"
+version = "1.7.3"
 
 """
 Custom Classes
@@ -58,33 +58,75 @@ class CustomText(tk.Text):
 
         return result
 
-"""
-Window Settings
-"""
-# Create the window
-root = tk.Tk("Encryptext")
+class PreferenceWindow(tk.Toplevel):
+    win_open = False
 
-def previewWindowCreation(hidden=False, add_frame=True):
-    global md_preview_window, frame
+    def __init__(self, close=False) -> None:
+        if not self.win_open and not close:
+            self.pref_window = tk.Toplevel()
 
-    md_preview_window = tk.Tk("Preview")
-    if hidden:
-        md_preview_window.withdraw()
-    md_preview_window.title("Preview")
-    md_preview_window.geometry("800x500")
-    md_preview_window.iconbitmap(getTrueFilename("app_icon.ico"))
+            self.pref_window.title("Preferences")
+            self.pref_window.geometry("500x600")
+            self.pref_window.iconbitmap(getTrueFilename("app_icon.ico"))
+            self.pref_window.protocol("WM_DELETE_WINDOW", self.closeWindow)
 
-    if add_frame:
-        frame = tkinterweb.HtmlFrame(md_preview_window, messages_enabled=False)
+            self.win_open = True
+        elif self.win_open:
+            self.pref_window.focus()
+
+    def closeWindow(self) -> None:
+        self.pref_window.destroy()
+        self.win_open = False
+
+class PreviewWindow(tk.Toplevel):
+    win_open = False
+
+    def __init__(self, close=False) -> None:
+        if not self.win_open and not close:
+            self.preview_window = tk.Toplevel()
+
+            self.preview_window.title("Preview")
+            self.preview_window.geometry("800x500")
+            self.preview_window.iconbitmap(getTrueFilename("app_icon.ico"))
+            self.preview_window.protocol("WM_DELETE_WINDOW", self.closeWindow)
+
+            self.win_open = True
+
+            self.preview_window.bind("<Control-w>", self.closeWindow)
+            self.preview_window.bind_all("<Control-P>", preview_window.closeWindow)
+            self.preview_window.bind_all("<Control-e>", updatePreview)
+
+            self.addFrame()
+        elif self.win_open:
+            self.preview_window.focus()
+
+    def closeWindow(self, other_args=None) -> None:
+        self.preview_window.destroy()
+        self.win_open = False
+
+    def addFrame(self) -> None:
+        self.frame = tkinterweb.HtmlFrame(self.preview_window, messages_enabled=False)
 
         current_tab = getCurrentTab()
         if current_tab == -1:
             return None
 
-        frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
-        frame.pack(fill="both", expand=True)
-        md_preview_window.bind_all("<Control-e>", updatePreview)
-        md_preview_window.bind_all("<Alt-P>", closePreview)
+        self.frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
+        self.frame.pack(fill="both", expand=True)
+
+    def updateFrame(self, text: str) -> None:
+        self.frame.load_html(markdown(text))
+
+    def key_bind(self, keys: str, func) -> None:
+        self.preview_window.bind(keys, func)
+
+"""
+Window Settings
+"""
+# Create the window
+root = tk.Tk()
+pref_window = PreferenceWindow(close=True)
+preview_window = PreviewWindow(close=True)
 
 # Rename the window
 root.title("Encryptext")
@@ -185,7 +227,7 @@ def quitApp(Event=None):
     if current_tab == -1:
         try:
             md_preview_window.destroy()
-            pref_window.destroy()
+            pref_window.closeWindow()
         finally:
             root.destroy()
             sys.exit()
@@ -203,7 +245,7 @@ def quitApp(Event=None):
     if quit_confirm:
         try:
             md_preview_window.destroy()
-            pref_window.destroy()
+            pref_window.closeWindow()
         finally:
             root.destroy()
             sys.exit()
@@ -367,7 +409,7 @@ def openFile(Event=None, current=False):
                     md_preview_window.deiconify()
                     updatePreview()
                 except:
-                    previewWindowCreation()
+                    preview_window.__init__()
         else:
             text = textboxes[current_tab].get("1.0", tk.END)
             textboxes[current_tab].delete("1.0", tk.END)
@@ -560,18 +602,18 @@ def updatePreview(Event=None, override=False):
     current_tab = getCurrentTab()
     if current_tab == -1:
         try:
-            frame.load_html(markdown(""))
+            preview_window.updateFrame("")
         except:
             return None
     else:
         try:
             # Update the preview
-            frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
+            preview_window.updateFrame(textboxes[current_tab].get("1.0", tk.END))
         except:
             # Only update it if it's markdown or none
             if file_extensions[current_tab] == "md" and not override:
                 # If the preview window was opened manually
-                previewWindowCreation()
+                preview_window.__init__()
 
 def trackChanges(Event=None, override=False):
     global prev_key
@@ -671,15 +713,7 @@ def editingMode(Event=None):
     textboxes[current_tab].config(state=tk.NORMAL)
 
 def openPreview(Event=None):
-    try:
-        md_preview_window.deiconify()
-    except:
-        previewWindowCreation()
-
-def closePreview(Event=None):
-    try:
-        md_preview_window.withdraw()
-    except: pass
+    preview_window.__init__()
 
 def selectAll(Event=None):
     current_tab = getCurrentTab()
@@ -696,15 +730,7 @@ def deselectAll(Event=None):
     textboxes[current_tab].event_generate("<<SelectNone>>")
 
 def openPreferences():
-    global pref_window, frame
-
-    pref_window = tk.Tk("Preferences")
-    pref_window.title("Preferences")
-    pref_window.geometry("500x600")
-    pref_window.iconbitmap(getTrueFilename("app_icon.ico"))
-    pref_window.protocol("WM_DELETE_WINDOW", pref_window.destroy)
-
-    pref_window.mainloop()
+    pref_window.__init__()
 
 def updateMenu(Event=None):
     current_tab = getCurrentTab()
@@ -910,7 +936,7 @@ def addNewTab(Event=None):
     tab_panes.add(textboxes[-1], text=" Untitled ")
 
     # Allow right-click menu to show up
-    # textboxes[-1].bind("<Button-3>", showQuickMenu)
+    textboxes[-1].bind("<Button-3>", showQuickMenu)
 
     # Fix Ctrl+T switching last char in textbox
     # https://stackoverflow.com/a/54185644
@@ -986,21 +1012,9 @@ addNewTab()
 # The preview window was the focused one before
 root.focus_force()
 
-previewWindowCreation(hidden=True)
-
 """
 Menu Bar
 """
-# Quick menu
-rightclickmenu = tk.Menu(root, tearoff=0)
-
-rightclickmenu.add_command(label="Cut")
-rightclickmenu.add_command(label="Copy")
-rightclickmenu.add_command(label="Paste")
-rightclickmenu.add_command(label="Reload")
-rightclickmenu.add_separator()
-rightclickmenu.add_command(label="Rename")
-
 # Top bar menu
 menubar = tk.Menu(root, tearoff=0)
 
@@ -1043,12 +1057,11 @@ filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
 root.bind("<Control-t>", addNewTab)
 
 filemenu.add_command(label="Close Tab", accelerator="Ctrl+W", command=closeCurrentTab)
-root.bind_all("<Control-w>", closeCurrentTab)
+root.bind("<Control-w>", closeCurrentTab)
 
 filemenu.add_separator()
 
 filemenu.add_command(label="Exit", command=quitApp)
-md_preview_window.bind_all("<Control-w>", closePreview)
 
 # Edit menu items
 editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo)
@@ -1077,11 +1090,10 @@ editmenu.add_separator()
 editmenu.add_command(label="Open Markdown Preview", accelerator="Ctrl+P", command=openPreview)
 root.bind_all("<Control-p>", openPreview)
 
-editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P", command=closePreview)
-root.bind_all("<Control-P>", closePreview)
-md_preview_window.bind_all("<Control-P>", closePreview)
+editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P", command=preview_window.closeWindow)
+root.bind_all("<Control-P>", preview_window.closeWindow)
 
-editmenu.add_command(label="Update Markdown Preview", command=updatePreview)
+editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
 
 editmenu.add_separator()
 
@@ -1128,13 +1140,30 @@ menubar.add_cascade(label="Help", menu=helpmenu)
 # Display the menu bar
 root.config(menu=menubar)
 
+# Quick menu
+rightclickmenu = tk.Menu(root, tearoff=0)
+
+rightclickmenu.add_command(label="Cut", command=cut)
+rightclickmenu.add_command(label="Copy", command=copy)
+rightclickmenu.add_command(label="Paste", command=paste)
+rightclickmenu.add_separator()
+rightclickmenu.add_command(label="Undo", command=undo)
+rightclickmenu.add_command(label="Redo", command=redo)
+rightclickmenu.add_separator()
+rightclickmenu.add_command(label="Text Colour", command=changeTextColour)
+rightclickmenu.add_command(label="Normal", command=changeToNormal)
+rightclickmenu.add_command(label="Bold", command=changeToBold)
+rightclickmenu.add_command(label="Italic", command=changeToItalic)
+rightclickmenu.add_separator()
+rightclickmenu.add_command(label="Open Preview", command=openPreview)
+rightclickmenu.add_command(label="Close Preview", command=preview_window.closeWindow)
+rightclickmenu.add_command(label="Update Preview", command=updatePreview)
+
 """
 Window Display
 """
 # When closing the app, run the quit_app function
 root.protocol("WM_DELETE_WINDOW", quitApp)
-md_preview_window.protocol("WM_DELETE_WINDOW", md_preview_window.destroy)
 
 # Display the window
-md_preview_window.mainloop()
 root.mainloop()
