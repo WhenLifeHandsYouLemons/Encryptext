@@ -1,15 +1,4 @@
-sys
-os
-shutil
-time
-random
-string
-subprocess
-traceback
-json
-threading
-tkinter
-webbrowser
+tk
 cryptography
 tkinterweb
 markdown
