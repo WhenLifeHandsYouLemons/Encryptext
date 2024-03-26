@@ -1,13 +1,4 @@
-sys
-os
-time
-random
-string
-subprocess
-traceback
-threading
-tkinter
-webbrowser
+tk
 cryptography
 tkinterweb
 markdown
