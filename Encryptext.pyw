@@ -35,29 +35,6 @@ version = "1.7.3"
 """
 Custom Classes
 """
-# From: https://stackoverflow.com/a/40618152/11106801
-class CustomText(tk.Text):
-    def __init__(self, *args, **kwargs):
-        """A text widget that report on internal widget commands"""
-        tk.Text.__init__(self, *args, **kwargs)
-
-        # create a proxy for the underlying widget
-        self._orig = self._w + "_orig"
-        self.tk.call("rename", self._w, self._orig)
-        self.tk.createcommand(self._w, self._proxy)
-
-    def _proxy(self, command, *args):
-        cmd = (self._orig, command) + args
-        try:
-            result = self.tk.call(cmd)
-        except:
-            result = ""
-
-        if command in ("insert", "delete", "replace"):
-            self.event_generate("<<TextModified>>")
-
-        return result
-
 class PreferenceWindow(tk.Toplevel):
     win_open = False
 
@@ -149,6 +126,8 @@ max_font_size = 96
 min_font_size = 8
 font_sizes = []
 font_type = []
+
+recent_files = []
 
 # Uses random random-length strings of characters to determine where formatting starts and stops# FORMAT ITEM SEPARATOR HERE
 format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
@@ -250,7 +229,7 @@ def quitApp(Event=None):
             root.destroy()
             sys.exit()
 
-def openFile(Event=None, current=False):
+def openFile(Event=None, current=False, file_path=None):
     # Make save_location global to change it for the whole program
     global file_save_locations, file_format_tags, file_histories, current_versions, file_format_tag_nums, file_extensions
 
@@ -267,10 +246,18 @@ def openFile(Event=None, current=False):
     if open_file_confirm:
         # Show a file selector and let user choose file
         save_location = file_save_locations[current_tab]
-        if not current:
+        if file_path != None:
+            save_location = file_path
+        elif not current:
             save_location = filedialog.askopenfilename(title="Select file", filetypes=supported_file_types)
 
         if save_location != "":
+            # Open the file and read its contents into an array
+            try:
+                file = open(save_location, "r")
+            except FileNotFoundError:
+                messagebox.showerror("Error Opening File", f"File not found.\nThe file that you tried to open doesn't exist!")
+
             # Don't change the file save location before confirming
             file_save_locations[current_tab] = save_location
 
@@ -284,9 +271,6 @@ def openFile(Event=None, current=False):
 
             # Set the title of the window to the file name
             tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=f" {file_name} ")
-
-            # Open the file and read its contents into an array
-            file = open(file_save_locations[current_tab], "r")
 
             # Set the current textbox to be writable
             textboxes[current_tab].config(state=tk.NORMAL)
@@ -616,19 +600,14 @@ def updatePreview(Event=None, override=False):
                 preview_window.__init__()
 
 def trackChanges(Event=None, override=False):
-    global prev_key
-
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
     # Set save status to False if it's been changed
-    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R"]
-    cur_key = Event.keysym
-    if not (((prev_key in key_ignore) and (cur_key in "abcdefghijklmnopqrstuvwxyz")) or (cur_key in key_ignore)):
+    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Shift_L", "Shift_R"]
+    if (Event.state <= 1 and Event.keysym not in key_ignore):
         setSaveStatus(False, current_tab)
-
-    prev_key = Event.keysym
 
     if (Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]) or (override):
         global file_histories, current_versions
@@ -911,7 +890,7 @@ def showQuickMenu(Event=None):
 
 def addNewTab(Event=None):
     # Create new textbox
-    textboxes.append(CustomText(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap="word"))
+    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap="word"))
 
     # Create new tab info slot in arrays
     file_save_locations.append("")
@@ -944,7 +923,7 @@ def addNewTab(Event=None):
     textboxes[-1].bindtags((bindtags[2], bindtags[0], bindtags[1], bindtags[3]))
 
     # Track document changes and update markdown preview
-    textboxes[-1].bind('<<TextModified>>', trackChanges)
+    textboxes[-1].bind('<Key>', trackChanges)
 
     # Sets the tab focus to the newly created tab
     tab_panes.select(tab_panes.tabs()[-1])
@@ -997,6 +976,48 @@ def setSaveStatus(save: bool, current_tab: int) -> None:
         if "*" in tab_title:
             tab_panes.tab(cur_tab_id, text=tab_panes.tab(cur_tab_id)['text'].split("*")[0])
 
+def captureSpecialKeys(Event=None):
+    cur_key = Event.keysym
+    mod_key = Event.state
+
+    # Run function based on what key was pressed
+    if cur_key == "s":
+        saveFile()
+    elif cur_key == "S":
+        saveFileAs()
+    elif cur_key == "n" and mod_key == 4:
+        newFile()
+    elif cur_key == "o":
+        openFile()
+    elif cur_key == "e" and mod_key == 131072:
+        editingMode()
+    elif cur_key == "v" and mod_key == 131072:
+        viewingMode()
+    elif cur_key == "t":
+        addNewTab()
+    elif cur_key == "w":
+        closeCurrentTab()
+    elif cur_key == "z":
+        undo()
+    elif cur_key == "Z":
+        redo()
+    elif cur_key == "A":
+        deselectAll()
+    elif cur_key == "p":
+        openPreview()
+    elif cur_key == "P":
+        preview_window.closeWindow()
+    elif cur_key == "+":
+        increaseFont()
+    elif cur_key == "_":
+        decreaseFont()
+    elif cur_key == "i":
+        changeToItalic()
+    elif cur_key == "b":
+        changeToBold()
+    elif cur_key == "n":
+        changeToNormal()
+
 """
 Window Items
 """
@@ -1020,6 +1041,7 @@ menubar = tk.Menu(root, tearoff=0)
 
 # Menu items
 filemenu = tk.Menu(menubar, tearoff=0)
+recentfilemenu = tk.Menu(filemenu, tearoff=0)
 editmenu = tk.Menu(menubar, tearoff=0)
 formatmenu = tk.Menu(menubar, tearoff=0)
 textfontmenu = tk.Menu(formatmenu, tearoff=0)
@@ -1029,101 +1051,64 @@ helpmenu = tk.Menu(menubar, tearoff=0)
 
 # File menu items
 filemenu.add_command(label="New File", accelerator="Ctrl+N", command=newFile)
-root.bind_all("<Control-n>", newFile)
-
 filemenu.add_command(label="Open File", accelerator="Ctrl+O", command=openFile)
-root.bind_all("<Control-o>", openFile)
 
+# Binding all Ctrl and Alt keys to run custom function first
+root.bind("<Control-Key>", captureSpecialKeys)
+root.bind("<Alt-Key>", captureSpecialKeys)
+
+# Create buttons for every recent file path stored
+for i in recent_files:
+    # From: https://stackoverflow.com/a/10865170
+    recentfilemenu.add_command(label=i, command=lambda i=i: openFile(file_path=i))
+
+filemenu.add_cascade(label="Open Recent", menu=recentfilemenu)
 filemenu.add_command(label="View File", command=viewFile)
-
 filemenu.add_separator()
-
 filemenu.add_command(label="Save", accelerator="Ctrl+S", command=saveFile)
-root.bind_all("<Control-s>", saveFile)
-
 filemenu.add_command(label="Save As", command=saveFileAs)
-
 filemenu.add_separator()
-
 filemenu.add_command(label="Edit Mode", accelerator="Alt+E", command=editingMode)
-root.bind_all("<Alt-e>", editingMode)
-
 filemenu.add_command(label="View Mode", accelerator="Alt+V", command=viewingMode)
-root.bind_all("<Alt-v>", viewingMode)
-
 filemenu.add_separator()
-
 filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
-root.bind("<Control-t>", addNewTab)
-
 filemenu.add_command(label="Close Tab", accelerator="Ctrl+W", command=closeCurrentTab)
-root.bind("<Control-w>", closeCurrentTab)
-
 filemenu.add_separator()
-
 filemenu.add_command(label="Exit", command=quitApp)
 
 # Edit menu items
 editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo)
-root.bind_all("<Control-z>", undo)
-
 editmenu.add_command(label="Redo", accelerator="Ctrl+Shift+Z", command=redo)
-root.bind_all("<Control-Z>", redo)
-
 editmenu.add_separator()
-
 editmenu.add_command(label="Cut", accelerator="Ctrl+X", command=cut)
-
 editmenu.add_command(label="Copy", accelerator="Ctrl+C", command=copy)
-
 editmenu.add_command(label="Paste", accelerator="Ctrl+V", command=paste)
-
 editmenu.add_separator()
-
 editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=selectAll)
-
 editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselectAll)
-root.bind_all("<Control-A>", deselectAll)
-
 editmenu.add_separator()
-
 editmenu.add_command(label="Open Markdown Preview", accelerator="Ctrl+P", command=openPreview)
-root.bind_all("<Control-p>", openPreview)
-
 editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P", command=preview_window.closeWindow)
-root.bind_all("<Control-P>", preview_window.closeWindow)
-
 editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
-
 editmenu.add_separator()
-
 editmenu.add_command(label="Edit Preferences", command=openPreferences)
 
 # Format menu items
+formatmenu.add_command(label="Text Colour", command=changeTextColour)
+
 textfontmenu.add_command(label="Arial")
 
 textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increaseFont)
-tab_panes.bind_all("<Control-+>", increaseFont)
-
 textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decreaseFont)
-tab_panes.bind_all("<Control-_>", decreaseFont)
-
-formatmenu.add_command(label="Text Colour", command=changeTextColour)
 
 textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
-tab_panes.bind_all("<Alt-n>", changeToNormal)
-
 textstylemenu.add_command(label="Bold", accelerator="Ctrl+B", command=changeToBold)
-tab_panes.bind_all("<Control-b>", changeToBold)
-
 textstylemenu.add_command(label="Italic", accelerator="Ctrl+I", command=changeToItalic)
-tab_panes.bind("<Control-i>", changeToItalic)
 
 if update:
     helpmenu.add_command(label="Update Encryptext", command=updateMenu)
 
 helpmenu.add_command(label="About Encryptext", command=aboutMenu)
-
 helpmenu.add_command(label="Encryptext on GitHub", command=documentation)
 
 # Add to menubar

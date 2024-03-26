@@ -5,7 +5,7 @@ version = "1.7.3"
 
 # Creates an executable file
 PyInstaller.__main__.run([
-    'installer_windows.py',
+    'encryptext_installer.py',
     '--onefile',
     '--clean',
     '--log-level',
@@ -21,7 +21,7 @@ PyInstaller.__main__.run([
 ])
 
 # Move the exe out of the dist folder
-system(f"move dist\\installer_windows.exe encryptext_installer_v{version}_64bit.exe")
+system(f"move dist\\encryptext_installer.exe encryptext_installer_v{version}_64bit.exe")
 
 # Remove pyinstaller folders
 system("rmdir /s /q build")
