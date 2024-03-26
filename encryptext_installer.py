@@ -1,5 +1,5 @@
-import os
-import shutil
+from os import rename, remove, rmdir, makedirs, path, environ
+from shutil import rmtree
 import sys
 from subprocess import run
 from time import sleep
@@ -8,30 +8,32 @@ from cryptography.fernet import Fernet as F
 from random import choice, randint
 from string import ascii_letters, digits
 import threading as t
+# https://github.com/rsalmei/alive-progress
+from alive_progress import alive_bar, styles
 
-version = "1.7.3"
+version = "1.8.0"
 
 print("\nStarting installer...")
 print("Please wait...")
 
-home_dir = os.path.expanduser("~")
-dir_path = os.path.join(home_dir, ".encryptext")
+home_dir = path.expanduser("~")
+dir_path = path.join(home_dir, ".encryptext")
 
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
     try:
         base = sys._MEIPASS
     except Exception:
-        base = os.path.abspath(".")
-    return os.path.join(base, filename)
+        base = path.abspath(".")
+    return path.join(base, filename)
 
 # Creates an executable file
 def appCreation():
-    file_path = os.path.join(dir_path, "Encryptext-User.pyw")
+    file_path = path.join(dir_path, "Encryptext-User.pyw")
     icon_path = getTrueFilename("app_icon.ico")
     # Fix for tkinterweb not working
     # https://github.com/pyinstaller/pyinstaller/issues/6658#issuecomment-1062817361
-    subproc_env = os.environ.copy()
+    subproc_env = environ.copy()
     subproc_env.pop('TCL_LIBRARY', None)
     subproc_env.pop('TK_LIBRARY', None)
 
@@ -43,7 +45,7 @@ def appCreation():
                 "--clean",
                 "--windowed",
                 "--log-level",
-                "CRITICAL",
+                "DEBUG",
                 "--icon",
                 icon_path,
                 "--add-data",
@@ -55,24 +57,58 @@ def appCreation():
                 file_path
     ]
     # Redirect both stdout and stderr to /dev/null or NUL depending on the platform
-    with open(os.devnull, 'w') as null_file:
+    with open(path.join(dir_path, "installer_output_log.txt"), 'w') as output_file:
         run(command,
             shell=True,
             env=subproc_env,
-            stdout=null_file,
-            stderr=null_file,
+            stdout=output_file,
+            stderr=output_file,
             cwd=dir_path)
 
-# https://stackoverflow.com/a/34325723
-# Print iterations progress
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
-    # Print New Line on Complete
-    if iteration == total:
-        print()
+app_thread = t.Thread(target=appCreation)
+
+def checkProgress(prev_val):
+    # Needs to return a value between 0 and 1
+    val = 0
+
+    # Load output file
+    with open(path.join(dir_path, "installer_output_log.txt"), 'r') as output_file:
+        text = output_file.readlines()
+
+    try:
+        # This is just a rough approximation of how long the process might take
+        # As pyinstaller doesn't provide ETAs for compilation, we have to guess
+        # based on the output text that we store in a log file and then delete
+        # once it finishes installing.
+        val = int(text[-1].split(": ")[0].split(" ")[0]) / 117000
+        return val
+    except:
+        return prev_val
+
+# https://github.com/rsalmei/alive-progress
+def progress_bar(percent_done):
+    # Choose a random bar and spinner theme
+    bar_themes = []
+    for key, val in enumerate(styles.BARS):
+        bar_themes.append(val)
+
+    spin_themes = []
+    for key, val in enumerate(styles.SPINNERS):
+        spin_themes.append(val)
+
+    with alive_bar(total=100, manual=True, bar=choice(bar_themes), spinner=choice(spin_themes), enrich_print=False) as bar:
+        while percent_done < 1:
+            # Update the progress bar
+            bar(percent_done)
+
+            if app_thread.is_alive():
+                percent_done = checkProgress(percent_done)
+            else:
+                percent_done = 1
+
+        bar(1)
+
+    print("Cleaning up...")
 
 update = input("\nAre you updating or installing Encryptext? [(u)pdating/(i)nstalling] ")
 while update != "u" and update != "i":
@@ -197,15 +233,15 @@ print("Format strings set!")
 
 # Removes the install files from any previous installations to not cause issues
 try:
-    os.remove(os.path.join(dir_path, "Encryptext.spec"))
-    os.remove(os.path.join(dir_path, "Encryptext-User.pyw"))
-    os.rmdir(os.path.join(dir_path, "dist"))
-    os.rmdir(os.path.join(dir_path, "build"))
+    remove(path.join(dir_path, "Encryptext.spec"))
+    remove(path.join(dir_path, "Encryptext-User.pyw"))
+    rmdir(path.join(dir_path, "dist"))
+    rmdir(path.join(dir_path, "build"))
 except: pass
 
 # Write the file back to the Encryptext.py file
-os.makedirs(dir_path, exist_ok=True)
-with open(os.path.join(dir_path, "Encryptext-User.pyw"), "w", encoding="utf8") as file:
+makedirs(dir_path, exist_ok=True)
+with open(path.join(dir_path, "Encryptext-User.pyw"), "w", encoding="utf8") as file:
     file.write(text)
 
 # Define the data to save
@@ -232,7 +268,7 @@ data = {
 }
 
 # Get the current user's home directory
-file_path = os.path.join(dir_path, "settings.json")
+file_path = path.join(dir_path, "settings.json")
 
 # Write JSON data
 with open(file_path, 'w') as file:
@@ -243,37 +279,24 @@ print("Created data files!")
 print("Building custom program...\n\n")
 
 # Start thread to create app
-app_thread = t.Thread(target=appCreation)
 app_thread.start()
 
 # Show a progress bar while app is compiling
-l = 100
-i = 0
-speed = 1.75
-printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50)
-while i < l-1:
-    sleep(speed)
+progress_bar(0)
 
-    if not app_thread.is_alive():
-        speed = 0.05
-
-    i += 1
-    printProgressBar(i, l, prefix='Progress:', suffix='Complete', length=50, printEnd='')
-
+# Wait for app compilation to finish
 app_thread.join()
 
-printProgressBar(i+1, l, prefix='Progress:', suffix='Complete', length=50, printEnd='')
-
 # Moves the exe out of the dist folder
-os.rename(os.path.join(dir_path, "dist", "Encryptext.exe"), f"Encryptext_v{version}.exe")
+rename(path.join(dir_path, "dist", "Encryptext.exe"), f"Encryptext_v{version}.exe")
 
 print("\n\nCreated program!")
-print("Cleaning up...")
 
 # Removes the files from pyinstaller
-os.rmdir(os.path.join(dir_path, "dist"))
-shutil.rmtree(os.path.join(dir_path, "build"))
-os.remove(os.path.join(dir_path, "Encryptext.spec"))
-os.remove(os.path.join(dir_path, "Encryptext-User.pyw"))
+rmdir(path.join(dir_path, "dist"))
+rmtree(path.join(dir_path, "build"))
+remove(path.join(dir_path, "Encryptext.spec"))
+remove(path.join(dir_path, "Encryptext-User.pyw"))
+remove(path.join(dir_path, "installer_output_log.txt"))
 
 input("\nCompleted! Press enter to finish setup...")

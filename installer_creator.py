@@ -1,7 +1,8 @@
-from os import system
+from os import rename, path, remove
+from shutil import rmtree
 import PyInstaller.__main__
 
-version = "1.7.3"
+version = "1.8.0"
 
 # Creates an executable file
 PyInstaller.__main__.run([
@@ -17,12 +18,17 @@ PyInstaller.__main__.run([
     '--add-data',
     'Encryptext.pyw;.',
     "--collect-all",
-    "tkinterweb"
+    "tkinterweb",
+    "--collect-all",
+    "alive_progress",
+    "--collect-all",
+    "grapheme"
 ])
 
 # Move the exe out of the dist folder
-system(f"move dist\\encryptext_installer.exe encryptext_installer_v{version}_64bit.exe")
+remove(f"encryptext_installer_v{version}_64bit.exe")
+rename(path.join("dist", "encryptext_installer.exe"), f"encryptext_installer_v{version}_64bit.exe")
 
 # Remove pyinstaller folders
-system("rmdir /s /q build")
-system("rmdir /s /q dist")
+rmtree("dist")
+rmtree("build")
