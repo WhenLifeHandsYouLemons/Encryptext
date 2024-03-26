@@ -1,8 +1,5 @@
-tkinter
-traceback
-webbrowser
+tk
 cryptography
 tkinterweb
 markdown
 PyInstaller
-threading
