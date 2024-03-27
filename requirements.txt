@@ -3,3 +3,4 @@ cryptography
 tkinterweb
 markdown
 PyInstaller
+alive_progress

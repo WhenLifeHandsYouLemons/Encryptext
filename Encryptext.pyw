@@ -6,7 +6,8 @@
 Imports
 """
 import sys
-from os.path import abspath, join
+from os.path import abspath, join, expanduser
+import json
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
@@ -27,10 +28,35 @@ def getTrueFilename(filename):
         base = abspath(".")
     return join(base, filename)
 
-debug = False
+debug = True
 # UPDATE MODE HERE
 update = False# UPDATE MODE HERE
-version = "1.7.3"
+
+try:
+    settings_path = join(expanduser("~"), ".encryptext", "settings.json")
+    with open(settings_path, "r", encoding="utf-8") as file:
+        settings = json.load(file)
+except FileNotFoundError:
+    settings = {
+        "version": "'Encryptext Offline Mode'",
+        "recentFilePaths": [],
+        "maxRecentFiles": 0,
+        "otherSettings": {
+            "theme": "light",
+            "fontStyle": "Arial",
+            "fontScaleFactor": 1,
+            "language": "English",
+            "autoSave": False,
+            "backupInterval": 0,
+            "showLineNumbers": False,
+            "wrapLines": True,
+            "highlightActiveLine": False,
+            "closeAllTabs": False
+        }
+    }
+
+version = settings["version"]
+font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
 
 """
 Custom Classes
@@ -43,13 +69,52 @@ class PreferenceWindow(tk.Toplevel):
             self.pref_window = tk.Toplevel()
 
             self.pref_window.title("Preferences")
-            self.pref_window.geometry("500x600")
+            self.pref_window.geometry("400x450")
             self.pref_window.iconbitmap(getTrueFilename("app_icon.ico"))
             self.pref_window.protocol("WM_DELETE_WINDOW", self.closeWindow)
 
             self.win_open = True
+
+            # Recent file number
+            self.selected_recent_files = tk.IntVar(value=settings["maxRecentFiles"])
+            self.title = tk.Label(self.pref_window, text="Preferences", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 18*font_scale_factor))
+            self.recent_file_label = tk.Label(self.pref_window, text="Number of recent files to store: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            self.recent_file_val = tk.Spinbox(self.recent_file_label, textvariable=self.selected_recent_files, from_=0, to=20, width=5, font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+
+            # Font style picker
+            self.selected_font_style = tk.StringVar(value=settings["otherSettings"]["fontStyle"])
+            self.font_style_label = tk.Label(self.pref_window, text="Display font style: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            options = ["Option 1", "Option 2", "Others"]
+            self.font_style_val = tk.OptionMenu(self.font_style_label, self.selected_font_style, *options)
+
+            # Font size number
+            self.selected_font_sf = tk.DoubleVar(value=settings["otherSettings"]["fontScaleFactor"])
+            self.title = tk.Label(self.pref_window, text="Preferences", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 18*font_scale_factor))
+            self.font_sf_label = tk.Label(self.pref_window, text="Display font size scale factor: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            self.font_sf_val = tk.Spinbox(self.font_sf_label, textvariable=self.selected_font_sf, from_=0.1, to=20, increment=0.1, width=5, font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+
+            # Save button
+            self.save_button = tk.Button(self.pref_window, text="Save Preferences", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor), command=self.savePreferences)
+
+            # Add all items to the display
+            self.title.pack(side="top", fill="x", anchor="nw", padx=5, pady=10)
+            self.recent_file_label.pack(side="top", fill="x", padx=5)
+            self.recent_file_val.pack(side="right", padx=20)
+            self.font_style_label.pack(side="top", fill="x", padx=5)
+            self.font_style_val.pack(side="right", padx=20)
+            self.font_sf_label.pack(side="top", fill="x", padx=5)
+            self.font_sf_val.pack(side="right", padx=20)
+            self.save_button.pack(side="bottom", anchor="e", pady=10, padx=10)
         elif self.win_open:
             self.pref_window.focus()
+
+    def savePreferences(self) -> None:
+        # Save preferences that have been selected
+        print(f"'{self.selected_recent_files.get()}', '{self.selected_font_style.get()}', '{self.selected_font_sf.get()}'")
+        # To get a Tkinter var value and store it somewhere else, use .set() and .get()
+
+        # Close the preferences window automatically
+        self.closeWindow()
 
     def closeWindow(self) -> None:
         self.pref_window.destroy()
@@ -127,7 +192,7 @@ min_font_size = 8
 font_sizes = []
 font_type = []
 
-recent_files = []
+recent_files = settings["recentFilePaths"]
 
 # Uses random random-length strings of characters to determine where formatting starts and stops# FORMAT ITEM SEPARATOR HERE
 format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
@@ -202,8 +267,18 @@ def updateTags():
     return formatted_tags
 
 def quitApp(Event=None):
+    global settings
+
     current_tab = getCurrentTab()
     if current_tab == -1:
+        # Save any settings changes
+        settings["recentFilePaths"] = recent_files
+        try:
+            with open(settings_path, "w") as file:
+                settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
+                file.write(str(settings))
+        except FileNotFoundError: pass
+
         try:
             md_preview_window.destroy()
             pref_window.closeWindow()
@@ -222,6 +297,14 @@ def quitApp(Event=None):
         quit_confirm = messagebox.askyesno("Quit", "Quit Encryptext?\n\nAny unsaved changes will be lost.")
 
     if quit_confirm:
+        # Save any settings changes
+        settings["recentFilePaths"] = recent_files
+        try:
+            with open(settings_path, "w") as file:
+                settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
+                file.write(str(settings))
+        except FileNotFoundError: pass
+
         try:
             md_preview_window.destroy()
             pref_window.closeWindow()
@@ -257,6 +340,7 @@ def openFile(Event=None, current=False, file_path=None):
                 file = open(save_location, "r")
             except FileNotFoundError:
                 messagebox.showerror("Error Opening File", f"File not found.\nThe file that you tried to open doesn't exist!")
+                return None
 
             # Don't change the file save location before confirming
             file_save_locations[current_tab] = save_location
@@ -372,6 +456,16 @@ def openFile(Event=None, current=False, file_path=None):
                     # Set save status to True
                     setSaveStatus(True, current_tab)
 
+                    # Change recent files list
+                    if save_location in recent_files:
+                        recent_files.pop(recent_files.index(save_location))
+                        recent_files.insert(0, save_location)
+                    else:
+                        recent_files.insert(0, save_location)
+                        # Check that there's only the set number of file paths stored
+                        if len(recent_files) > settings["maxRecentFiles"]:
+                            recent_files.pop()
+                    createMenuBar()
                 except Exception as e:
                     if debug:
                         messagebox.showerror("Error Opening File", format_exc())
@@ -387,6 +481,17 @@ def openFile(Event=None, current=False, file_path=None):
 
                 # Set save status to True
                 setSaveStatus(True, current_tab)
+
+                # Change recent files list
+                if save_location in recent_files:
+                    recent_files.pop(recent_files.index(save_location))
+                    recent_files.insert(0, save_location)
+                else:
+                    recent_files.insert(0, save_location)
+                    # Check that there's only the set number of file paths stored
+                    if len(recent_files) > settings["maxRecentFiles"]:
+                        recent_files.pop()
+                createMenuBar()
             if file_extensions[current_tab] == "md":
                 global md_preview_window
                 try:
@@ -606,28 +711,32 @@ def trackChanges(Event=None, override=False):
 
     # Set save status to False if it's been changed
     key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Shift_L", "Shift_R"]
-    if (Event.state <= 1 and Event.keysym not in key_ignore):
-        setSaveStatus(False, current_tab)
+    try:
+        if (Event.state <= 1 and Event.keysym not in key_ignore):
+            setSaveStatus(False, current_tab)
+    except: pass
 
-    if (Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]) or (override):
-        global file_histories, current_versions
+    try:
+        if (Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]) or (override):
+            global file_histories, current_versions
 
-        # Check if the first version is empty
-        if file_histories[current_tab][0] != "":
-            if current_versions[current_tab] < max_history:
-                # Add a new version
-                file_histories[current_tab].insert(0, "")
-                # Update the current version
-                current_versions[current_tab] += 1
+            # Check if the first version is empty
+            if file_histories[current_tab][0] != "":
+                if current_versions[current_tab] < max_history:
+                    # Add a new version
+                    file_histories[current_tab].insert(0, "")
+                    # Update the current version
+                    current_versions[current_tab] += 1
 
-        # Shift every version down one
-        for i in range(0, len(file_histories[current_tab]) - 1):
-            file_histories[current_tab][i] = file_histories[current_tab][i + 1]
+            # Shift every version down one
+            for i in range(0, len(file_histories[current_tab]) - 1):
+                file_histories[current_tab][i] = file_histories[current_tab][i + 1]
 
-        # Update the current version
-        file_histories[current_tab][current_versions[current_tab]] = textboxes[current_tab].get("1.0", tk.END)
-        # Remove the last newline character
-        file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
+            # Update the current version
+            file_histories[current_tab][current_versions[current_tab]] = textboxes[current_tab].get("1.0", tk.END)
+            # Remove the last newline character
+            file_histories[current_tab][current_versions[current_tab]] = file_histories[current_tab][current_versions[current_tab]][:-1]
+    except: pass
 
     # Update the preview
     updatePreview(override=True)
@@ -890,7 +999,11 @@ def showQuickMenu(Event=None):
 
 def addNewTab(Event=None):
     # Create new textbox
-    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap="word"))
+    if settings["otherSettings"]["wrapLines"] == True:
+        wrap_mode = "word"
+    else:
+        wrap_mode = "none"
+    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap=wrap_mode))
 
     # Create new tab info slot in arrays
     file_save_locations.append("")
@@ -905,13 +1018,22 @@ def addNewTab(Event=None):
 
     # Create scroll bar and link it
     scroll_bars = []
-    scroll_bars.append(tk.Scrollbar(textboxes[-1], orient=tk.VERTICAL, cursor="arrow"))
-    scroll_bars[-1].config(command=textboxes[-1].yview)
-    textboxes[-1].config(yscrollcommand=scroll_bars[-1].set)
+    scroll_bars.append([tk.Scrollbar(textboxes[-1], orient=tk.VERTICAL, cursor="arrow")])
+    scroll_bars[-1][0].config(command=textboxes[-1].yview)
+    textboxes[-1].config(yscrollcommand=scroll_bars[-1][0].set)
+
+    if settings["otherSettings"]["wrapLines"] == False:
+        scroll_bars[-1].append(tk.Scrollbar(textboxes[-1], orient=tk.HORIZONTAL, cursor="arrow"))
+        scroll_bars[-1][1].config(command=textboxes[-1].xview)
+        textboxes[-1].config(xscrollcommand=scroll_bars[-1][1].set)
 
     # Add to display
     textboxes[-1].pack(side=tk.TOP, fill=tk.BOTH)
-    scroll_bars[-1].pack(side=tk.RIGHT, fill=tk.Y)
+    scroll_bars[-1][0].pack(side=tk.RIGHT, fill=tk.Y)
+
+    if settings["otherSettings"]["wrapLines"] == False:
+        scroll_bars[-1][1].pack(side=tk.BOTTOM, fill=tk.X)
+
     tab_panes.add(textboxes[-1], text=" Untitled ")
 
     # Allow right-click menu to show up
@@ -937,6 +1059,11 @@ def closeCurrentTab(Event=None):
     current_tab = getCurrentTab()
     if current_tab == -1:
         quitApp()
+
+    # If their settings are configured to close all tabs
+    if settings["otherSettings"]["closeAllTabs"] == True:
+        quitApp()
+        return None
 
     close_tab_confirm = True
     if saved[current_tab] == False:
@@ -1018,6 +1145,8 @@ def captureSpecialKeys(Event=None):
     elif cur_key == "n":
         changeToNormal()
 
+    return "break"
+
 """
 Window Items
 """
@@ -1036,94 +1165,97 @@ root.focus_force()
 """
 Menu Bar
 """
-# Top bar menu
-menubar = tk.Menu(root, tearoff=0)
-
-# Menu items
-filemenu = tk.Menu(menubar, tearoff=0)
-recentfilemenu = tk.Menu(filemenu, tearoff=0)
-editmenu = tk.Menu(menubar, tearoff=0)
-formatmenu = tk.Menu(menubar, tearoff=0)
-textfontmenu = tk.Menu(formatmenu, tearoff=0)
-textsizemenu = tk.Menu(formatmenu, tearoff=0)
-textstylemenu = tk.Menu(formatmenu, tearoff=0)
-helpmenu = tk.Menu(menubar, tearoff=0)
-
-# File menu items
-filemenu.add_command(label="New File", accelerator="Ctrl+N", command=newFile)
-filemenu.add_command(label="Open File", accelerator="Ctrl+O", command=openFile)
-
 # Binding all Ctrl and Alt keys to run custom function first
 root.bind("<Control-Key>", captureSpecialKeys)
 root.bind("<Alt-Key>", captureSpecialKeys)
 
-# Create buttons for every recent file path stored
-for i in recent_files:
-    # From: https://stackoverflow.com/a/10865170
-    recentfilemenu.add_command(label=i, command=lambda i=i: openFile(file_path=i))
+def createMenuBar():
+    # Top bar menu
+    menubar = tk.Menu(root, tearoff=0)
 
-filemenu.add_cascade(label="Open Recent", menu=recentfilemenu)
-filemenu.add_command(label="View File", command=viewFile)
-filemenu.add_separator()
-filemenu.add_command(label="Save", accelerator="Ctrl+S", command=saveFile)
-filemenu.add_command(label="Save As", command=saveFileAs)
-filemenu.add_separator()
-filemenu.add_command(label="Edit Mode", accelerator="Alt+E", command=editingMode)
-filemenu.add_command(label="View Mode", accelerator="Alt+V", command=viewingMode)
-filemenu.add_separator()
-filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
-filemenu.add_command(label="Close Tab", accelerator="Ctrl+W", command=closeCurrentTab)
-filemenu.add_separator()
-filemenu.add_command(label="Exit", command=quitApp)
+    # Menu items
+    filemenu = tk.Menu(menubar, tearoff=0)
+    recentfilemenu = tk.Menu(filemenu, tearoff=0)
+    editmenu = tk.Menu(menubar, tearoff=0)
+    formatmenu = tk.Menu(menubar, tearoff=0)
+    textfontmenu = tk.Menu(formatmenu, tearoff=0)
+    textsizemenu = tk.Menu(formatmenu, tearoff=0)
+    textstylemenu = tk.Menu(formatmenu, tearoff=0)
+    helpmenu = tk.Menu(menubar, tearoff=0)
 
-# Edit menu items
-editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo)
-editmenu.add_command(label="Redo", accelerator="Ctrl+Shift+Z", command=redo)
-editmenu.add_separator()
-editmenu.add_command(label="Cut", accelerator="Ctrl+X", command=cut)
-editmenu.add_command(label="Copy", accelerator="Ctrl+C", command=copy)
-editmenu.add_command(label="Paste", accelerator="Ctrl+V", command=paste)
-editmenu.add_separator()
-editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=selectAll)
-editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselectAll)
-editmenu.add_separator()
-editmenu.add_command(label="Open Markdown Preview", accelerator="Ctrl+P", command=openPreview)
-editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P", command=preview_window.closeWindow)
-editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
-editmenu.add_separator()
-editmenu.add_command(label="Edit Preferences", command=openPreferences)
+    # File menu items
+    filemenu.add_command(label="New File", accelerator="Ctrl+N", command=newFile)
+    filemenu.add_command(label="Open File", accelerator="Ctrl+O", command=openFile)
 
-# Format menu items
-formatmenu.add_command(label="Text Colour", command=changeTextColour)
+    # Create buttons for every recent file path stored
+    for i in recent_files:
+        # From: https://stackoverflow.com/a/10865170
+        recentfilemenu.add_command(label=i, command=lambda i=i: openFile(file_path=i))
 
-textfontmenu.add_command(label="Arial")
+    filemenu.add_cascade(label="Open Recent", menu=recentfilemenu)
+    filemenu.add_command(label="View File", command=viewFile)
+    filemenu.add_separator()
+    filemenu.add_command(label="Save", accelerator="Ctrl+S", command=saveFile)
+    filemenu.add_command(label="Save As", command=saveFileAs)
+    filemenu.add_separator()
+    filemenu.add_command(label="Edit Mode", accelerator="Alt+E", command=editingMode)
+    filemenu.add_command(label="View Mode", accelerator="Alt+V", command=viewingMode)
+    filemenu.add_separator()
+    filemenu.add_command(label="New Tab", accelerator="Ctrl+T", command=addNewTab)
+    filemenu.add_command(label="Close Tab", accelerator="Ctrl+W", command=closeCurrentTab)
+    filemenu.add_separator()
+    filemenu.add_command(label="Exit", command=quitApp)
 
-textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increaseFont)
-textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decreaseFont)
+    # Edit menu items
+    editmenu.add_command(label="Undo", accelerator="Ctrl+Z", command=undo)
+    editmenu.add_command(label="Redo", accelerator="Ctrl+Shift+Z", command=redo)
+    editmenu.add_separator()
+    editmenu.add_command(label="Cut", accelerator="Ctrl+X", command=cut)
+    editmenu.add_command(label="Copy", accelerator="Ctrl+C", command=copy)
+    editmenu.add_command(label="Paste", accelerator="Ctrl+V", command=paste)
+    editmenu.add_separator()
+    editmenu.add_command(label="Select All", accelerator="Ctrl+A", command=selectAll)
+    editmenu.add_command(label="Deselect All", accelerator="Ctrl+Shift+A", command=deselectAll)
+    editmenu.add_separator()
+    editmenu.add_command(label="Open Markdown Preview", accelerator="Ctrl+P", command=openPreview)
+    editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P", command=preview_window.closeWindow)
+    editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
+    editmenu.add_separator()
+    editmenu.add_command(label="Edit Preferences", command=openPreferences)
 
-textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
-textstylemenu.add_command(label="Bold", accelerator="Ctrl+B", command=changeToBold)
-textstylemenu.add_command(label="Italic", accelerator="Ctrl+I", command=changeToItalic)
+    # Format menu items
+    formatmenu.add_command(label="Text Colour", command=changeTextColour)
 
-if update:
-    helpmenu.add_command(label="Update Encryptext", command=updateMenu)
+    textfontmenu.add_command(label="Arial")
 
-helpmenu.add_command(label="About Encryptext", command=aboutMenu)
-helpmenu.add_command(label="Encryptext on GitHub", command=documentation)
+    textsizemenu.add_command(label="Increase Font Size", accelerator="Ctrl+Shift++", command=increaseFont)
+    textsizemenu.add_command(label="Decrease Font Size", accelerator="Ctrl+Shift+-", command=decreaseFont)
 
-# Add to menubar
-menubar.add_cascade(label="File", menu=filemenu)
-menubar.add_cascade(label="Edit", menu=editmenu)
+    textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
+    textstylemenu.add_command(label="Bold", accelerator="Ctrl+B", command=changeToBold)
+    textstylemenu.add_command(label="Italic", accelerator="Ctrl+I", command=changeToItalic)
 
-formatmenu.add_cascade(label="Font", menu=textfontmenu)
-formatmenu.add_cascade(label="Text Size", menu=textsizemenu)
-formatmenu.add_cascade(label="Text Style", menu=textstylemenu)
+    if update:
+        helpmenu.add_command(label="Update Encryptext", command=updateMenu)
 
-menubar.add_cascade(label="Format", menu=formatmenu)
-menubar.add_cascade(label="Help", menu=helpmenu)
+    helpmenu.add_command(label="About Encryptext", command=aboutMenu)
+    helpmenu.add_command(label="Encryptext on GitHub", command=documentation)
 
-# Display the menu bar
-root.config(menu=menubar)
+    # Add to menubar
+    menubar.add_cascade(label="File", menu=filemenu)
+    menubar.add_cascade(label="Edit", menu=editmenu)
+
+    formatmenu.add_cascade(label="Font", menu=textfontmenu)
+    formatmenu.add_cascade(label="Text Size", menu=textsizemenu)
+    formatmenu.add_cascade(label="Text Style", menu=textstylemenu)
+
+    menubar.add_cascade(label="Format", menu=formatmenu)
+    menubar.add_cascade(label="Help", menu=helpmenu)
+
+    # Display the menu bar
+    root.config(menu=menubar)
+
+createMenuBar()
 
 # Quick menu
 rightclickmenu = tk.Menu(root, tearoff=0)
