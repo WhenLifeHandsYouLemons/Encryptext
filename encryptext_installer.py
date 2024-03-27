@@ -108,7 +108,7 @@ def progress_bar(percent_done):
 
         bar(1)
 
-    print("Cleaning up...")
+    print("\nCleaning up...")
 
 update = input("\nAre you updating or installing Encryptext? [(u)pdating/(i)nstalling] ")
 while update != "u" and update != "i":
@@ -244,19 +244,23 @@ makedirs(dir_path, exist_ok=True)
 with open(path.join(dir_path, "Encryptext-User.pyw"), "w", encoding="utf8") as file:
     file.write(text)
 
-# Define the data to save
+# Get the current user's home directory
+settings_file_path = path.join(dir_path, "settings.json")
+
+# Define the settings data to save
+# If they want to bring over their old settings or not
+keep_settings = input("\nDo you want to load your settings from an old version?\nNOTE: If you don't have an older version, it will create new settings by default [(y)es/(n)o] ")
+while keep_settings != "y" and keep_settings != "n":
+    keep_settings = input("\nDo you want to load your settings from an old version?\nNOTE: If you don't have an older version, it will create new settings by default [(y)es/(n)o] ")
+
 data = {
     "version": version,
-    "recentFilePaths": [
-        "/path/to/file1",
-        "/path/to/file2",
-        "/path/to/file3",
-        "/path/to/file4",
-        "/path/to/file5"
-    ],
+    "recentFilePaths": [],
     "maxRecentFiles": 5,
     "otherSettings": {
         "theme": "light",
+        "fontStyle": "Arial",
+        "fontScaleFactor": 1,
         "language": "English",
         "autoSave": False,
         "backupInterval": 15,
@@ -267,11 +271,34 @@ data = {
     }
 }
 
-# Get the current user's home directory
-file_path = path.join(dir_path, "settings.json")
+# Change the values to be the old ones if the user allowed it
+# Otherwise the values will already be the default ones
+if keep_settings == "y":
+    try:
+        with open(settings_file_path, "r") as file:
+            file = json.load(file)
+
+        data = {
+            "version": version,
+            "recentFilePaths": file["recentFilePaths"],
+            "maxRecentFiles": file["maxRecentFiles"],
+            "otherSettings": {
+                "theme": file["theme"],
+                "fontStyle": file["otherSettings"]["fontStyle"],
+                "fontScaleFactor": file["otherSettings"]["fontScaleFactor"],
+                "language": file["otherSettings"]["language"],
+                "autoSave": file["otherSettings"]["autoSave"],
+                "backupInterval": file["otherSettings"]["backupInterval"],
+                "showLineNumbers": file["otherSettings"]["showLineNumbers"],
+                "wrapLines": file["otherSettings"]["wrapLines"],
+                "highlightActiveLine": file["otherSettings"]["highlightActiveLine"],
+                "closeAllTabs": file["otherSettings"]["closeAllTabs"]
+            }
+        }
+    except: pass
 
 # Write JSON data
-with open(file_path, 'w') as file:
+with open(settings_file_path, 'w') as file:
     json.dump(data, file)
 
 print("Created data files!")

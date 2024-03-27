@@ -43,6 +43,8 @@ except FileNotFoundError:
         "maxRecentFiles": 0,
         "otherSettings": {
             "theme": "light",
+            "fontStyle": "Arial",
+            "fontScaleFactor": 1,
             "language": "English",
             "autoSave": False,
             "backupInterval": 0,
@@ -54,6 +56,7 @@ except FileNotFoundError:
     }
 
 version = settings["version"]
+font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
 
 """
 Custom Classes
@@ -66,13 +69,52 @@ class PreferenceWindow(tk.Toplevel):
             self.pref_window = tk.Toplevel()
 
             self.pref_window.title("Preferences")
-            self.pref_window.geometry("500x600")
+            self.pref_window.geometry("400x450")
             self.pref_window.iconbitmap(getTrueFilename("app_icon.ico"))
             self.pref_window.protocol("WM_DELETE_WINDOW", self.closeWindow)
 
             self.win_open = True
+
+            # Recent file number
+            self.selected_recent_files = tk.IntVar(value=settings["maxRecentFiles"])
+            self.title = tk.Label(self.pref_window, text="Preferences", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 18*font_scale_factor))
+            self.recent_file_label = tk.Label(self.pref_window, text="Number of recent files to store: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            self.recent_file_val = tk.Spinbox(self.recent_file_label, textvariable=self.selected_recent_files, from_=0, to=20, width=5, font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+
+            # Font style picker
+            self.selected_font_style = tk.StringVar(value=settings["otherSettings"]["fontStyle"])
+            self.font_style_label = tk.Label(self.pref_window, text="Display font style: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            options = ["Option 1", "Option 2", "Others"]
+            self.font_style_val = tk.OptionMenu(self.font_style_label, self.selected_font_style, *options)
+
+            # Font size number
+            self.selected_font_sf = tk.DoubleVar(value=settings["otherSettings"]["fontScaleFactor"])
+            self.title = tk.Label(self.pref_window, text="Preferences", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 18*font_scale_factor))
+            self.font_sf_label = tk.Label(self.pref_window, text="Display font size scale factor: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            self.font_sf_val = tk.Spinbox(self.font_sf_label, textvariable=self.selected_font_sf, from_=0.1, to=20, increment=0.1, width=5, font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+
+            # Save button
+            self.save_button = tk.Button(self.pref_window, text="Save Preferences", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor), command=self.savePreferences)
+
+            # Add all items to the display
+            self.title.pack(side="top", fill="x", anchor="nw", padx=5, pady=10)
+            self.recent_file_label.pack(side="top", fill="x", padx=5)
+            self.recent_file_val.pack(side="right", padx=20)
+            self.font_style_label.pack(side="top", fill="x", padx=5)
+            self.font_style_val.pack(side="right", padx=20)
+            self.font_sf_label.pack(side="top", fill="x", padx=5)
+            self.font_sf_val.pack(side="right", padx=20)
+            self.save_button.pack(side="bottom", anchor="e", pady=10, padx=10)
         elif self.win_open:
             self.pref_window.focus()
+
+    def savePreferences(self) -> None:
+        # Save preferences that have been selected
+        print(f"'{self.selected_recent_files.get()}', '{self.selected_font_style.get()}', '{self.selected_font_sf.get()}'")
+        # To get a Tkinter var value and store it somewhere else, use .set() and .get()
+
+        # Close the preferences window automatically
+        self.closeWindow()
 
     def closeWindow(self) -> None:
         self.pref_window.destroy()
