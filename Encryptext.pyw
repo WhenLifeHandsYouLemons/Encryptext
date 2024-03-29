@@ -28,7 +28,7 @@ def getTrueFilename(filename):
         base = abspath(".")
     return join(base, filename)
 
-debug = True
+debug = False
 # UPDATE MODE HERE
 update = False# UPDATE MODE HERE
 
@@ -77,41 +77,50 @@ class PreferenceWindow(tk.Toplevel):
 
             # Recent file number
             self.selected_recent_files = tk.IntVar(value=settings["maxRecentFiles"])
-            self.title = tk.Label(self.pref_window, text="Preferences", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 18*font_scale_factor))
-            self.recent_file_label = tk.Label(self.pref_window, text="Number of recent files to store: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
-            self.recent_file_val = tk.Spinbox(self.recent_file_label, textvariable=self.selected_recent_files, from_=0, to=20, width=5, font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            self.title = tk.Label(self.pref_window, text="Preferences", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(18*font_scale_factor))))
+            self.recent_file_label = ttk.Label(self.pref_window, text="Number of recent files to store: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.recent_file_val = ttk.Spinbox(self.recent_file_label, textvariable=self.selected_recent_files, from_=0, to=20, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
             # Font style picker
             self.selected_font_style = tk.StringVar(value=settings["otherSettings"]["fontStyle"])
-            self.font_style_label = tk.Label(self.pref_window, text="Display font style: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            self.font_style_label = ttk.Label(self.pref_window, text="Display font style: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            #TODO: Get all the fonts installed on the user's computer
             options = ["Option 1", "Option 2", "Others"]
-            self.font_style_val = tk.OptionMenu(self.font_style_label, self.selected_font_style, *options)
+            self.font_style_val = ttk.Combobox(self.font_style_label, textvariable=self.selected_font_style, values=options)
 
             # Font size number
             self.selected_font_sf = tk.DoubleVar(value=settings["otherSettings"]["fontScaleFactor"])
-            self.title = tk.Label(self.pref_window, text="Preferences", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 18*font_scale_factor))
-            self.font_sf_label = tk.Label(self.pref_window, text="Display font size scale factor: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
-            self.font_sf_val = tk.Spinbox(self.font_sf_label, textvariable=self.selected_font_sf, from_=0.1, to=20, increment=0.1, width=5, font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor))
+            self.font_sf_label = tk.Label(self.pref_window, text="Display font size scale factor: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.font_sf_val = ttk.Spinbox(self.font_sf_label, textvariable=self.selected_font_sf, from_=0.5, to=2, increment=0.05, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+
+            # Info text
+            self.info_text = ttk.Label(self.pref_window, text="Reopen Encryptext to see changes after saving.", anchor="sw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
             # Save button
-            self.save_button = tk.Button(self.pref_window, text="Save Preferences", font=(settings["otherSettings"]["fontStyle"], 11*font_scale_factor), command=self.savePreferences)
+            self.save_button = ttk.Button(self.pref_window, text="Save Preferences", command=self.savePreferences)
 
             # Add all items to the display
             self.title.pack(side="top", fill="x", anchor="nw", padx=5, pady=10)
+            ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=1, pady=5)
             self.recent_file_label.pack(side="top", fill="x", padx=5)
             self.recent_file_val.pack(side="right", padx=20)
+            ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
             self.font_style_label.pack(side="top", fill="x", padx=5)
             self.font_style_val.pack(side="right", padx=20)
             self.font_sf_label.pack(side="top", fill="x", padx=5)
             self.font_sf_val.pack(side="right", padx=20)
             self.save_button.pack(side="bottom", anchor="e", pady=10, padx=10)
+            self.info_text.pack(side="bottom", anchor="n", pady=10, padx=10)
         elif self.win_open:
             self.pref_window.focus()
 
     def savePreferences(self) -> None:
+        global settings
+
         # Save preferences that have been selected
-        print(f"'{self.selected_recent_files.get()}', '{self.selected_font_style.get()}', '{self.selected_font_sf.get()}'")
-        # To get a Tkinter var value and store it somewhere else, use .set() and .get()
+        settings["maxRecentFiles"] = self.selected_recent_files.get()
+        settings["otherSettings"]["fontStyle"] = self.selected_font_style.get()
+        settings["otherSettings"]["fontScaleFactor"] = self.selected_font_sf.get()
 
         # Close the preferences window automatically
         self.closeWindow()
@@ -191,6 +200,13 @@ max_font_size = 96
 min_font_size = 8
 font_sizes = []
 font_type = []
+
+button_style = ttk.Style()
+button_style.configure("TButton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+notebook_style = ttk.Style()
+notebook_style.configure("TNotebook", tabposition="nw", padding=5)
+notebook_tab_style = ttk.Style()
+notebook_tab_style.configure("TNotebook.Tab", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))), expand=-1)
 
 recent_files = settings["recentFilePaths"]
 
@@ -1150,7 +1166,7 @@ def captureSpecialKeys(Event=None):
 """
 Window Items
 """
-tab_panes = ttk.Notebook(root, cursor="hand2", padding=5)
+tab_panes = ttk.Notebook(root, cursor="hand2")
 tab_panes.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 tab_panes.enable_traversal()
 tab_panes.bind("<<NotebookTabChanged>>", updatePreview) # https://stackoverflow.com/a/44092163
@@ -1171,17 +1187,17 @@ root.bind("<Alt-Key>", captureSpecialKeys)
 
 def createMenuBar():
     # Top bar menu
-    menubar = tk.Menu(root, tearoff=0)
+    menubar = tk.Menu(root, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
     # Menu items
-    filemenu = tk.Menu(menubar, tearoff=0)
-    recentfilemenu = tk.Menu(filemenu, tearoff=0)
-    editmenu = tk.Menu(menubar, tearoff=0)
-    formatmenu = tk.Menu(menubar, tearoff=0)
-    textfontmenu = tk.Menu(formatmenu, tearoff=0)
-    textsizemenu = tk.Menu(formatmenu, tearoff=0)
-    textstylemenu = tk.Menu(formatmenu, tearoff=0)
-    helpmenu = tk.Menu(menubar, tearoff=0)
+    filemenu = tk.Menu(menubar, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+    recentfilemenu = tk.Menu(filemenu, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+    editmenu = tk.Menu(menubar, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+    formatmenu = tk.Menu(menubar, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+    textfontmenu = tk.Menu(formatmenu, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+    textsizemenu = tk.Menu(formatmenu, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+    textstylemenu = tk.Menu(formatmenu, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+    helpmenu = tk.Menu(menubar, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
     # File menu items
     filemenu.add_command(label="New File", accelerator="Ctrl+N", command=newFile)
@@ -1192,7 +1208,11 @@ def createMenuBar():
         # From: https://stackoverflow.com/a/10865170
         recentfilemenu.add_command(label=i, command=lambda i=i: openFile(file_path=i))
 
-    filemenu.add_cascade(label="Open Recent", menu=recentfilemenu)
+    if len(recent_files) == 0:
+        state = "disabled"
+    else:
+        state = "enabled"
+    filemenu.add_cascade(label="Open Recent", menu=recentfilemenu, state=state)
     filemenu.add_command(label="View File", command=viewFile)
     filemenu.add_separator()
     filemenu.add_command(label="Save", accelerator="Ctrl+S", command=saveFile)
@@ -1258,7 +1278,7 @@ def createMenuBar():
 createMenuBar()
 
 # Quick menu
-rightclickmenu = tk.Menu(root, tearoff=0)
+rightclickmenu = tk.Menu(root, tearoff=False)
 
 rightclickmenu.add_command(label="Cut", command=cut)
 rightclickmenu.add_command(label="Copy", command=copy)
