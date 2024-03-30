@@ -7,8 +7,10 @@ Imports
 """
 import sys
 from os.path import abspath, join, expanduser
+#! from os import getenv     # Not useful right now, but could be useful if translations are available
 import json
 import tkinter as tk
+from tkinter import font
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
@@ -45,9 +47,9 @@ except FileNotFoundError:
             "theme": "light",
             "fontStyle": "Arial",
             "fontScaleFactor": 1,
-            "language": "English",
+            "language": "en_US",
             "autoSave": False,
-            "backupInterval": 0,
+            "autoSaveInterval": 0,
             "showLineNumbers": False,
             "wrapLines": True,
             "highlightActiveLine": False,
@@ -61,6 +63,13 @@ font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
 """
 Custom Classes
 """
+# From: https://www.reddit.com/r/learnpython/comments/6dndqz/comment/di42keo/
+class WrappedLabel(ttk.Label):
+    """a type of Label that automatically adjusts the wrap to the size"""
+    def __init__(self, master=None, **kwargs):
+        ttk.Label.__init__(self, master, **kwargs)
+        self.bind("<Configure>", lambda e: self.config(wraplength=self.winfo_width()))
+
 class PreferenceWindow(tk.Toplevel):
     win_open = False
 
@@ -69,48 +78,104 @@ class PreferenceWindow(tk.Toplevel):
             self.pref_window = tk.Toplevel()
 
             self.pref_window.title("Preferences")
-            self.pref_window.geometry("400x450")
+            self.pref_window.geometry("450x600")
             self.pref_window.iconbitmap(getTrueFilename("app_icon.ico"))
             self.pref_window.protocol("WM_DELETE_WINDOW", self.closeWindow)
 
             self.win_open = True
 
+            self.option_pady = 3
+
             # Recent file number
             self.selected_recent_files = tk.IntVar(value=settings["maxRecentFiles"])
-            self.title = tk.Label(self.pref_window, text="Preferences", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(18*font_scale_factor))))
-            self.recent_file_label = ttk.Label(self.pref_window, text="Number of recent files to store: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.title = WrappedLabel(self.pref_window, text="Preferences", font=(settings["otherSettings"]["fontStyle"], int(round(18*font_scale_factor))))
+            self.recent_file_label = WrappedLabel(self.pref_window, text="Number of recent files to store: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             self.recent_file_val = ttk.Spinbox(self.recent_file_label, textvariable=self.selected_recent_files, from_=0, to=20, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
             # Font style picker
             self.selected_font_style = tk.StringVar(value=settings["otherSettings"]["fontStyle"])
-            self.font_style_label = ttk.Label(self.pref_window, text="Display font style: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-            #TODO: Get all the fonts installed on the user's computer
-            options = ["Option 1", "Option 2", "Others"]
-            self.font_style_val = ttk.Combobox(self.font_style_label, textvariable=self.selected_font_style, values=options)
+            self.font_style_label = WrappedLabel(self.pref_window, text="Display font style: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            font_options = sorted(list(font.families()))
+            self.font_style_val = ttk.Combobox(self.font_style_label, textvariable=self.selected_font_style, values=font_options, state="readonly", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
             # Font size number
             self.selected_font_sf = tk.DoubleVar(value=settings["otherSettings"]["fontScaleFactor"])
-            self.font_sf_label = tk.Label(self.pref_window, text="Display font size scale factor: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.font_sf_label = WrappedLabel(self.pref_window, text="Display font size scale factor: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             self.font_sf_val = ttk.Spinbox(self.font_sf_label, textvariable=self.selected_font_sf, from_=0.5, to=2, increment=0.05, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
+            # Theme selector
+            self.selected_theme = tk.StringVar(value=settings["otherSettings"]["theme"])
+            self.theme_label = WrappedLabel(self.pref_window, text="Theme: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.light_theme_val = ttk.Radiobutton(self.theme_label, text="Light", value="light", variable=self.selected_theme)
+            self.dark_theme_val = ttk.Radiobutton(self.theme_label, text="Dark", value="dark", variable=self.selected_theme)
+
+            # Auto-save selector
+            self.selected_auto_save = tk.StringVar(value=str(settings["otherSettings"]["autoSave"]).lower())
+            self.auto_save_val = ttk.Checkbutton(self.pref_window, text="Auto-save", variable=self.selected_auto_save, onvalue="true", offvalue="false")
+
+            # Auto-save interval number
+            self.selected_auto_save_interval_val = tk.IntVar(value=settings["otherSettings"]["autoSaveInterval"])
+            self.auto_save_interval_label = WrappedLabel(self.pref_window, text="Auto-save interval: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.auto_save_interval_val = ttk.Spinbox(self.auto_save_interval_label, textvariable=self.selected_auto_save_interval_val, from_=1, to=300, increment=15, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+
+            # Language picker
+            self.selected_language = tk.StringVar(value=settings["otherSettings"]["language"])
+            self.language_label = WrappedLabel(self.pref_window, text="Display language: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            #! getenv("LANG").split(".")[0]      # Can be useful to get the user's default language
+            lang_options = ["en_US"]
+            self.language_val = ttk.Combobox(self.language_label, textvariable=self.selected_language, values=lang_options, state="readonly", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+
+            # show checkboxes for other true/false options
+            self.selected_show_line_no = tk.StringVar(value=str(settings["otherSettings"]["showLineNumbers"]).lower())
+            self.show_line_no_val = ttk.Checkbutton(self.pref_window, text="Show line numbers", variable=self.selected_show_line_no, onvalue="true", offvalue="false")
+            self.selected_wrap_line = tk.StringVar(value=str(settings["otherSettings"]["wrapLines"]).lower())
+            self.wrap_line_val = ttk.Checkbutton(self.pref_window, text="Wrap text", variable=self.selected_wrap_line, onvalue="true", offvalue="false")
+            self.selected_show_active_line = tk.StringVar(value=str(settings["otherSettings"]["highlightActiveLine"]).lower())
+            self.show_active_line_val = ttk.Checkbutton(self.pref_window, text="Highlight active line", variable=self.selected_show_active_line, onvalue="true", offvalue="false")
+            self.selected_close_all_tabs = tk.StringVar(value=str(settings["otherSettings"]["closeAllTabs"]).lower())
+            self.close_all_tabs_val = ttk.Checkbutton(self.pref_window, text="Close all tabs", variable=self.selected_close_all_tabs, onvalue="true", offvalue="false")
+
             # Info text
-            self.info_text = ttk.Label(self.pref_window, text="Reopen Encryptext to see changes after saving.", anchor="sw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.info_text = WrappedLabel(self.pref_window, text="Reopen Encryptext to see changes after saving.", anchor="sw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
             # Save button
             self.save_button = ttk.Button(self.pref_window, text="Save Preferences", command=self.savePreferences)
 
             # Add all items to the display
             self.title.pack(side="top", fill="x", anchor="nw", padx=5, pady=10)
-            ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=1, pady=5)
-            self.recent_file_label.pack(side="top", fill="x", padx=5)
-            self.recent_file_val.pack(side="right", padx=20)
+            ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=5, pady=5)
+
+            self.recent_file_label.pack(side="top", anchor="w", fill="x", padx=5)
+            self.recent_file_val.pack(side="right", padx=20, pady=self.option_pady)
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
-            self.font_style_label.pack(side="top", fill="x", padx=5)
-            self.font_style_val.pack(side="right", padx=20)
-            self.font_sf_label.pack(side="top", fill="x", padx=5)
-            self.font_sf_val.pack(side="right", padx=20)
+
+            self.font_style_label.pack(side="top", fill="x", padx=5, anchor="nw")
+            self.font_style_val.pack(side="right", padx=20, pady=self.option_pady)
+            self.font_sf_label.pack(side="top", fill="x", padx=5, anchor="nw")
+            self.font_sf_val.pack(side="right", padx=20, pady=self.option_pady)
+            ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
+
+            self.theme_label.pack(side="top", fill="x", padx=5, anchor="n")
+            self.dark_theme_val.pack(side="right", padx=20, pady=self.option_pady)
+            self.light_theme_val.pack(side="right", padx=20, pady=self.option_pady)
+            ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
+
+            self.auto_save_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
+            self.auto_save_interval_label.pack(side="top", fill="x", padx=5, anchor="nw")
+            self.auto_save_interval_val.pack(side="right", padx=20, pady=self.option_pady)
+            ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
+
+            self.language_label.pack(side="top", fill="x", padx=5, anchor="nw")
+            self.language_val.pack(side="right", padx=20, pady=self.option_pady)
+            ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
+
+            self.show_line_no_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
+            self.wrap_line_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
+            self.show_active_line_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
+            self.close_all_tabs_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
+
             self.save_button.pack(side="bottom", anchor="e", pady=10, padx=10)
-            self.info_text.pack(side="bottom", anchor="n", pady=10, padx=10)
+            self.info_text.pack(side="bottom", anchor="n", padx=5, pady=self.option_pady, fill="x")
         elif self.win_open:
             self.pref_window.focus()
 
@@ -121,6 +186,14 @@ class PreferenceWindow(tk.Toplevel):
         settings["maxRecentFiles"] = self.selected_recent_files.get()
         settings["otherSettings"]["fontStyle"] = self.selected_font_style.get()
         settings["otherSettings"]["fontScaleFactor"] = self.selected_font_sf.get()
+        settings["otherSettings"]["theme"] = self.selected_theme.get()
+        settings["otherSettings"]["autoSave"] = self.selected_auto_save.get()
+        settings["otherSettings"]["autoSaveInterval"] = self.selected_auto_save_interval_val.get()
+        settings["otherSettings"]["language"] = self.language_val.get()
+        settings["otherSettings"]["showLineNumbers"] = self.selected_show_line_no.get()
+        settings["otherSettings"]["wrapLines"] = self.selected_wrap_line.get()
+        settings["otherSettings"]["highlightActiveLine"] = self.selected_show_active_line.get()
+        settings["otherSettings"]["closeAllTabs"] = self.selected_close_all_tabs.get()
 
         # Close the preferences window automatically
         self.closeWindow()
@@ -207,6 +280,10 @@ notebook_style = ttk.Style()
 notebook_style.configure("TNotebook", tabposition="nw", padding=5)
 notebook_tab_style = ttk.Style()
 notebook_tab_style.configure("TNotebook.Tab", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))), expand=-1)
+radio_button_style = ttk.Style()
+radio_button_style.configure("TRadiobutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+check_button_style = ttk.Style()
+check_button_style.configure("TCheckbutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
 recent_files = settings["recentFilePaths"]
 
