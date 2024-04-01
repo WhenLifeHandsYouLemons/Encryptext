@@ -13,7 +13,7 @@ import threading as t
 # https://github.com/rsalmei/alive-progress
 from alive_progress import alive_bar, styles
 
-version = "1.8.0"
+version = "1.9.0"
 
 print("\nStarting installer...")
 print("Please wait...")

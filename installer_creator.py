@@ -6,7 +6,7 @@ import hashlib
 
 import PyInstaller.__main__
 
-version = "1.8.0"
+version = "1.9.0"
 
 # Compute hash of the input string
 def computeHash(input_string):
