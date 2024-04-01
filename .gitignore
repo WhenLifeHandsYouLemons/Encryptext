@@ -161,3 +161,4 @@ cython_debug/
 
 # Custom files to ignore
 *.bsdesign
+Original Files/key.txt
