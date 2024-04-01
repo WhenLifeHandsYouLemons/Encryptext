@@ -1,3 +1,5 @@
+#!/usr/bin/python'
+
 from os import rename, path, remove
 from shutil import rmtree
 import hashlib

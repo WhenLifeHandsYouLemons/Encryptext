@@ -1,7 +1,9 @@
-from os import rename, remove, rmdir, makedirs, path, environ
+#!/usr/bin/python'
+
+from os import rename, remove, rmdir, makedirs, listdir, path, environ
 from shutil import rmtree
 import sys
-from subprocess import run
+from subprocess import run, PIPE
 from time import sleep
 import json
 from cryptography.fernet import Fernet as F
@@ -29,7 +31,7 @@ def getTrueFilename(filename):
 
 # Creates an executable file
 def appCreation():
-    file_path = path.join(dir_path, "Encryptext-User.pyw")
+    file_path = path.join(dir_path, f"encryptext_v{version}.pyw")
     icon_path = getTrueFilename("app_icon.ico")
     # Fix for tkinterweb not working
     # https://github.com/pyinstaller/pyinstaller/issues/6658#issuecomment-1062817361
@@ -51,7 +53,7 @@ def appCreation():
                 "--add-data",
                 f"{icon_path};.",
                 "--name",
-                "Encryptext",
+                "encryptext",
                 "--collect-all",
                 "tkinterweb",
                 "--exclude-module",
@@ -116,29 +118,10 @@ update = input("\nAre you updating or installing Encryptext? [(u)pdating/(i)nsta
 while update != "u" and update != "i":
     update = input("\nAre you updating or installing Encryptext? [(u)pdating/(i)nstalling] ")
 
-need_update = input("\nDo you want to be able to update Encryptext in the future?\nNOTE: This lowers the security but allows you to update Encryptext to get new features and not lose your encrypted files. [(y)es/(n)o] ")
-while need_update != "y" and need_update != "n":
-    need_update = input("\nDo you want to be able to update Encryptext in the future?\nNOTE: This lowers the security but allows you to update Encryptext to get new features and not lose your encrypted files. [(y)es/(n)o] ")
-
-# Open the Encryptext.py file and read it into a variable
+# Open the Encryptext.pyw file and read it into a variable
 file = open(getTrueFilename("Encryptext.pyw"), "r", encoding="utf8")
 file = file.read()
-
-# Find where the update mode is stored in the file
-file = file.split("# UPDATE MODE HERE")
-
-if need_update == "y":
-    # Set the update option to true
-    option = True
-else:
-    option = False
-
-# Add the option to the file
-file[1] = f"update = {option}"
-
-text = "".join(file)
-
-print("\nUpdate option set!")
+text = file
 
 # Adds computed hash to file
 hash_str = "INSERT COMPUTED HASH HERE"
@@ -150,10 +133,16 @@ file[1] = "'".join(hash_line)
 text = "".join(file)
 
 # Communicate to old program
+return_attributes = ""
 if update == "u":
-    print("\n\nPlease open the current version of Encryptext you have.")
-    print("In the menu bar at the top, click on 'Help'. Then click on 'Update Encryptext'.\n")
-    sleep(5)
+    try:
+        exe_files = [f for f in listdir(dir_path) if f.endswith('.exe')]
+        return_attributes = run([f"{path.join(dir_path, exe_files[0])}", hash_str], stdout=PIPE)
+        return_attributes = return_attributes.stdout.decode().split("(")[-1].split(")")[0].split(", ")
+    except IndexError:
+        raise Exception("Encryptext hasn't been installed before! Please install the program before trying to update.")
+    except:
+        raise Exception("Something went wrong! Please try again or file a crash report on GitHub.")
 
 # Find where the encryption key is stored in the file
 file = text.split("# ENCRYPTION KEY HERE")
@@ -162,10 +151,7 @@ if update == "i":
     # Create a key and remove the b'' from the string
     key = F.generate_key().decode()
 else:
-    key = str(input("\nPlease enter the Encryption Key (be careful to not add the spaces, just the text):"))
-    while len(key) != 44 and key[-1] != "=":
-        key = str(input("\nYou haven't entered the key correctly. Please enter the 'Encryption Key' (be careful to not add the spaces, just the text):"))
-    print()
+    key = str(return_attributes[3].split("'")[1])
 
 # Add the key to the file
 key_line = file[1]
@@ -187,9 +173,7 @@ if update == "i":
     # Create a format item separator string
     format_item_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
 else:
-    format_item_separator = str(input("\nPlease enter the Format Item Separator (be careful to not add the spaces, just the text):"))
-    while len(format_item_separator) < 15:
-        format_item_separator = str(input("\nYou haven't entered the string correctly. Please enter the 'Format Item Separator' (be careful to not add the spaces, just the text):"))
+    format_item_separator = str(return_attributes[0].split("'")[1])
 
 # Add the format item separator string to the file
 key_line = file[1]
@@ -207,9 +191,7 @@ if update == "i":
     # Create a format separator string
     format_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
 else:
-    format_separator = str(input("\nPlease enter the Format Separator String (be careful to not add the spaces, just the text):"))
-    while len(format_separator) < 15:
-        format_separator = str(input("\nYou haven't entered the string correctly. Please enter the 'Format Separator String' (be careful to not add the spaces, just the text):"))
+    format_separator = str(return_attributes[1].split("'")[1])
 
 # Add the format separator string to the file
 key_line = file[1]
@@ -227,10 +209,7 @@ if update == "i":
     # Create a format string
     format_string = "".join([choice(possible_characters) for i in range(randint(15, 45))])
 else:
-    format_string = str(input("\nPlease enter the Format String (be careful to not add the spaces, just the text):"))
-    while len(format_string) < 15:
-        format_string = str(input("\nYou haven't entered the string correctly. Please enter the 'Format String' (be careful to not add the spaces, just the text):"))
-    print()
+    format_string = str(return_attributes[2].split("'")[1])
 
 # Add the format string to the file
 key_line = file[1]
@@ -242,15 +221,6 @@ file[1] = key_line
 text = "".join(file)
 
 print("Format strings set!")
-
-# Removes the install files from any previous installations to not cause issues
-try:
-    remove(path.join(dir_path, f"Encryptext_v{version}.exe"))
-    remove(path.join(dir_path, "Encryptext.spec"))
-    remove(path.join(dir_path, "Encryptext-User.pyw"))
-    rmdir(path.join(dir_path, "dist"))
-    rmdir(path.join(dir_path, "build"))
-except: pass
 
 # Get the current user's home directory
 settings_file_path = path.join(dir_path, "settings.json")
@@ -313,11 +283,24 @@ with open(settings_file_path, 'w') as file:
 
 print("Created data files!")
 
+# Removes the program file from any previous installations to not cause issues
+# This happens right before any files are going to be written to disk
+try:
+    remove(path.join(dir_path, f"encryptext_v{version}.pyw"))
+except: pass
+
 # Write the file back to the Encryptext.py file
-with open(path.join(dir_path, "Encryptext-User.pyw"), "w", encoding="utf8") as file:
+with open(path.join(dir_path, f"encryptext_v{version}.pyw"), "w", encoding="utf8") as file:
     file.write(text)
 
 print("Building custom program...\n\n")
+
+# Removes the pyinstaller files from any previous installations to not cause issues
+# This happens right before any files are going to be written to disk
+try:
+    rmdir(path.join(dir_path, "dist"))
+    rmdir(path.join(dir_path, "build"))
+except: pass
 
 # Start thread to create app
 app_thread.start()
@@ -328,16 +311,21 @@ progress_bar(0)
 # Wait for app compilation to finish
 app_thread.join()
 
+# Remove old version if it's the same version number before moving new one out
+try:
+    remove(path.join(dir_path, f"encryptext_v{version}.exe"))
+except: pass
+
 # Moves the exe out of the dist folder
-rename(path.join(dir_path, "dist", "Encryptext.exe"), path.join(dir_path, f"Encryptext_v{version}.exe"))
+rename(path.join(dir_path, "dist", "encryptext.exe"), path.join(dir_path, f"encryptext_v{version}.exe"))
 
 # Create desktop shortcut
-# From: https://stackoverflow.com/a/69597224
+# https://stackoverflow.com/a/69597224
 try:
     from win32com.client import Dispatch
 
-    shortcut_path = path.join(home_dir, "Desktop", f"Encryptext_v{version}.lnk")  #This is where the shortcut will be created
-    target_path = path.join(dir_path, f"Encryptext_v{version}.exe") # directory to which the shortcut is created
+    shortcut_path = path.join(home_dir, "Desktop", f"Encryptext_v{version}.lnk")
+    target_path = path.join(dir_path, f"encryptext_v{version}.exe")
 
     shell = Dispatch('WScript.Shell')
     shortcut = shell.CreateShortCut(shortcut_path)
@@ -351,8 +339,8 @@ try:
     # Create Start Menu folder for Encryptext
     makedirs(path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext"), exist_ok=True)
 
-    shortcut_path = path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext", f"Encryptext.lnk")  #This is where the shortcut will be created
-    target_path = path.join(dir_path, f"Encryptext_v{version}.exe") # directory to which the shortcut is created
+    shortcut_path = path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext", f"Encryptext {version}.lnk")
+    target_path = path.join(dir_path, f"encryptext_v{version}.exe")
 
     shell = Dispatch('WScript.Shell')
     shortcut = shell.CreateShortCut(shortcut_path)
@@ -366,7 +354,7 @@ print("\n\nCreated program!")
 # Removes the files from pyinstaller
 rmdir(path.join(dir_path, "dist"))
 rmtree(path.join(dir_path, "build"))
-remove(path.join(dir_path, "Encryptext-User.pyw"))
+remove(path.join(dir_path, f"encryptext_v{version}.pyw"))
 remove(path.join(dir_path, "installer_output.log"))
 
 input("\nCompleted! Press enter to finish setup...")

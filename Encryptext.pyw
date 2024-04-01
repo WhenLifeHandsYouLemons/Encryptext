@@ -1,3 +1,5 @@
+#!/usr/bin/python'
+
 # Created by Sooraj S
 # https://encryptext.sooraj.dev
 # Free for everyone. Forever.
@@ -31,8 +33,28 @@ def getTrueFilename(filename):
     return join(base, filename)
 
 debug = False
-# UPDATE MODE HERE
-update = False# UPDATE MODE HERE
+
+# ENCRYPTION KEY HERE
+encrypt_key = b''# ENCRYPTION KEY HERE
+
+# Uses random random-length strings of characters to determine where formatting starts and stops# FORMAT ITEM SEPARATOR HERE
+format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
+format_separator = ''# FORMAT SEPARATOR HERE# FORMAT STRING HERE
+format_string = ''# FORMAT STRING HERE
+
+# HASH STRING HERE
+hash_str = ''# HASH STRING HERE
+
+def updateMode() -> tuple:
+    return (format_item_separator, format_separator, format_string, encrypt_key)
+
+arguments = sys.argv
+if len(arguments) == 2 and arguments[1] == hash_str:
+    print(updateMode())
+    sys.exit(0)
+elif len(arguments) == 2:
+    print((Fernet.generate_key().decode(), Fernet.generate_key().decode(), Fernet.generate_key().decode(), Fernet.generate_key().decode()))
+    sys.exit(0)
 
 try:
     settings_path = join(expanduser("~"), ".encryptext", "settings.json")
@@ -287,22 +309,6 @@ check_button_style.configure("TCheckbutton", font=(settings["otherSettings"]["fo
 
 recent_files = settings["recentFilePaths"]
 
-# Uses random random-length strings of characters to determine where formatting starts and stops# FORMAT ITEM SEPARATOR HERE
-format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
-format_separator = ''# FORMAT SEPARATOR HERE# FORMAT STRING HERE
-format_string = ''# FORMAT STRING HERE
-
-# HASH STRING HERE
-hash_str = ''# HASH STRING HERE
-
-def updateMode() -> tuple:
-    return (format_item_separator, format_separator, format_string)
-
-arguments = sys.argv()
-if arguments[0] == 1 and arguments[1] == hash_str:
-    updateMode()
-    exit()
-
 supported_file_types = [
     ("Accepted Files", "*.etx *.md *.txt *.py *.html *.css *.js *.json *.csv *.ini *.log"),
     ("Encrypted File", "*.etx"),
@@ -318,8 +324,6 @@ supported_file_types = [
     ("Log File", "*.log"),
     ("All Files", "*.*")
 ]
-# ENCRYPTION KEY HERE
-encrypt_key = b''# ENCRYPTION KEY HERE
 
 # For debug purposes, set static key and separators
 if debug:
@@ -1299,7 +1303,7 @@ def createMenuBar():
     if len(recent_files) == 0:
         state = "disabled"
     else:
-        state = "enabled"
+        state = "normal"
     filemenu.add_cascade(label="Open Recent", menu=recentfilemenu, state=state)
     filemenu.add_command(label="View File", command=viewFile)
     filemenu.add_separator()
@@ -1343,8 +1347,7 @@ def createMenuBar():
     textstylemenu.add_command(label="Bold", accelerator="Ctrl+B", command=changeToBold)
     textstylemenu.add_command(label="Italic", accelerator="Ctrl+I", command=changeToItalic)
 
-    if update:
-        helpmenu.add_command(label="Update Encryptext", command=updateMenu)
+    helpmenu.add_command(label="Update Encryptext", command=updateMenu)
 
     helpmenu.add_command(label="About Encryptext", command=aboutMenu)
     helpmenu.add_command(label="Encryptext on GitHub", command=documentation)
