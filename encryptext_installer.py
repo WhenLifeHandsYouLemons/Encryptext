@@ -127,12 +127,12 @@ file = file.split("# UPDATE MODE HERE")
 
 if need_update == "y":
     # Set the update option to true
-    option = "update = True"
+    option = True
 else:
-    option = "update = False"
+    option = False
 
 # Add the option to the file
-file[1] = option
+file[1] = f"update = {option}"
 
 text = "".join(file)
 
@@ -238,6 +238,15 @@ try:
     rmdir(path.join(dir_path, "dist"))
     rmdir(path.join(dir_path, "build"))
 except: pass
+
+# Adds computed hash to file
+hash_str = "INSERT COMPUTED HASH HERE"
+file = text.split("# HASH STRING HERE")
+hash_line = file[1].split("'")
+hash_line[1] = hash_str
+file[1] = "'".join(hash_line)
+
+text = "".join(file)
 
 # Write the file back to the Encryptext.py file
 makedirs(dir_path, exist_ok=True)

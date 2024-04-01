@@ -309,6 +309,8 @@ supported_file_types = [
 ]
 # ENCRYPTION KEY HERE
 encrypt_key = b''# ENCRYPTION KEY HERE
+# HASH STRING HERE
+hash_str = ''# HASH STRING HERE
 
 # For debug purposes, set static key and separators
 if debug:
