@@ -38,7 +38,7 @@ PyInstaller.__main__.run([
     '--log-level',
     'ERROR',
     '--icon',
-    'installer_icon.ico',
+    'app_icon.ico',
     '--add-data',
     'app_icon.ico;.',
     '--add-data',
