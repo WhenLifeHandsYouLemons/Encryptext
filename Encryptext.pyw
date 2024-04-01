@@ -292,6 +292,17 @@ format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
 format_separator = ''# FORMAT SEPARATOR HERE# FORMAT STRING HERE
 format_string = ''# FORMAT STRING HERE
 
+# HASH STRING HERE
+hash_str = ''# HASH STRING HERE
+
+def updateMode() -> tuple:
+    return (format_item_separator, format_separator, format_string)
+
+arguments = sys.argv()
+if arguments[0] == 1 and arguments[1] == hash_str:
+    updateMode()
+    exit()
+
 supported_file_types = [
     ("Accepted Files", "*.etx *.md *.txt *.py *.html *.css *.js *.json *.csv *.ini *.log"),
     ("Encrypted File", "*.etx"),
@@ -309,8 +320,6 @@ supported_file_types = [
 ]
 # ENCRYPTION KEY HERE
 encrypt_key = b''# ENCRYPTION KEY HERE
-# HASH STRING HERE
-hash_str = ''# HASH STRING HERE
 
 # For debug purposes, set static key and separators
 if debug:

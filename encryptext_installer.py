@@ -54,10 +54,12 @@ def appCreation():
                 "Encryptext",
                 "--collect-all",
                 "tkinterweb",
+                "--exclude-module",
+                "pywin32",
                 file_path
     ]
     # Redirect both stdout and stderr to /dev/null or NUL depending on the platform
-    with open(path.join(dir_path, "installer_output_log.txt"), 'w') as output_file:
+    with open(path.join(dir_path, "installer_output.log"), 'w') as output_file:
         run(command,
             shell=True,
             env=subproc_env,
@@ -72,7 +74,7 @@ def checkProgress(prev_val):
     val = 0
 
     # Load output file
-    with open(path.join(dir_path, "installer_output_log.txt"), 'r') as output_file:
+    with open(path.join(dir_path, "installer_output.log"), 'r') as output_file:
         text = output_file.readlines()
 
     try:
@@ -138,6 +140,16 @@ text = "".join(file)
 
 print("\nUpdate option set!")
 
+# Adds computed hash to file
+hash_str = "INSERT COMPUTED HASH HERE"
+file = text.split("# HASH STRING HERE")
+hash_line = file[1].split("'")
+hash_line[1] = hash_str
+file[1] = "'".join(hash_line)
+
+text = "".join(file)
+
+# Communicate to old program
 if update == "u":
     print("\n\nPlease open the current version of Encryptext you have.")
     print("In the menu bar at the top, click on 'Help'. Then click on 'Update Encryptext'.\n")
@@ -233,25 +245,12 @@ print("Format strings set!")
 
 # Removes the install files from any previous installations to not cause issues
 try:
+    remove(path.join(dir_path, f"Encryptext_v{version}.exe"))
     remove(path.join(dir_path, "Encryptext.spec"))
     remove(path.join(dir_path, "Encryptext-User.pyw"))
     rmdir(path.join(dir_path, "dist"))
     rmdir(path.join(dir_path, "build"))
 except: pass
-
-# Adds computed hash to file
-hash_str = "INSERT COMPUTED HASH HERE"
-file = text.split("# HASH STRING HERE")
-hash_line = file[1].split("'")
-hash_line[1] = hash_str
-file[1] = "'".join(hash_line)
-
-text = "".join(file)
-
-# Write the file back to the Encryptext.py file
-makedirs(dir_path, exist_ok=True)
-with open(path.join(dir_path, "Encryptext-User.pyw"), "w", encoding="utf8") as file:
-    file.write(text)
 
 # Get the current user's home directory
 settings_file_path = path.join(dir_path, "settings.json")
@@ -306,11 +305,17 @@ if keep_settings == "y":
         }
     except: pass
 
+makedirs(dir_path, exist_ok=True)
+
 # Write JSON data
 with open(settings_file_path, 'w') as file:
     json.dump(data, file)
 
 print("Created data files!")
+
+# Write the file back to the Encryptext.py file
+with open(path.join(dir_path, "Encryptext-User.pyw"), "w", encoding="utf8") as file:
+    file.write(text)
 
 print("Building custom program...\n\n")
 
@@ -324,15 +329,44 @@ progress_bar(0)
 app_thread.join()
 
 # Moves the exe out of the dist folder
-rename(path.join(dir_path, "dist", "Encryptext.exe"), f"Encryptext_v{version}.exe")
+rename(path.join(dir_path, "dist", "Encryptext.exe"), path.join(dir_path, f"Encryptext_v{version}.exe"))
+
+# Create desktop shortcut
+# From: https://stackoverflow.com/a/69597224
+try:
+    from win32com.client import Dispatch
+
+    shortcut_path = path.join(home_dir, "Desktop", f"Encryptext_v{version}.lnk")  #This is where the shortcut will be created
+    target_path = path.join(dir_path, f"Encryptext_v{version}.exe") # directory to which the shortcut is created
+
+    shell = Dispatch('WScript.Shell')
+    shortcut = shell.CreateShortCut(shortcut_path)
+    shortcut.Targetpath = target_path
+    shortcut.save()
+except:
+    print(f"Couldn't create Desktop shortcut!")
+
+# Create Start Menu shortcut
+try:
+    # Create Start Menu folder for Encryptext
+    makedirs(path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext"), exist_ok=True)
+
+    shortcut_path = path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext", f"Encryptext.lnk")  #This is where the shortcut will be created
+    target_path = path.join(dir_path, f"Encryptext_v{version}.exe") # directory to which the shortcut is created
+
+    shell = Dispatch('WScript.Shell')
+    shortcut = shell.CreateShortCut(shortcut_path)
+    shortcut.Targetpath = target_path
+    shortcut.save()
+except:
+    print("Couldn't create Start Menu shortcut!")
 
 print("\n\nCreated program!")
 
 # Removes the files from pyinstaller
 rmdir(path.join(dir_path, "dist"))
 rmtree(path.join(dir_path, "build"))
-remove(path.join(dir_path, "Encryptext.spec"))
 remove(path.join(dir_path, "Encryptext-User.pyw"))
-remove(path.join(dir_path, "installer_output_log.txt"))
+remove(path.join(dir_path, "installer_output.log"))
 
 input("\nCompleted! Press enter to finish setup...")

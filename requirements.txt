@@ -4,3 +4,4 @@ tkinterweb
 markdown
 PyInstaller
 alive_progress
+pywin32

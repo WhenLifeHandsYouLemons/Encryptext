@@ -24,9 +24,9 @@ with open("encryptext_installer.py", "r+") as file:
     installer_file = file.read()
     installer_parts = installer_file.split("INSERT COMPUTED HASH HERE")
     installer_file = hash_str.join(installer_parts)
-    # file.seek(0)
+    file.seek(0)
     file.write(installer_file)
-    # file.truncate()
+    file.truncate()
 
 # Creates an executable file
 PyInstaller.__main__.run([
@@ -54,12 +54,15 @@ with open("encryptext_installer.py", "r+") as file:
     installer_file = file.read()
     installer_parts = installer_file.split(hash_str)
     installer_file = "INSERT COMPUTED HASH HERE".join(installer_parts)
+    file.seek(0)
     file.write(installer_file)
+    file.truncate()
 
 # Move the exe out of the dist folder
 remove(f"encryptext_installer_v{version}_64bit.exe")
 rename(path.join("dist", "encryptext_installer.exe"), f"encryptext_installer_v{version}_64bit.exe")
 
-# Remove pyinstaller folders
+# Remove pyinstaller folders and files
 rmtree("dist")
 rmtree("build")
+remove("encryptext_installer.spec")
