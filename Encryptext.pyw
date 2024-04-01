@@ -11,6 +11,8 @@ import sys
 from os.path import abspath, join, expanduser
 #! from os import getenv     # Not useful right now, but could be useful if translations are available
 import json
+from random import choice, randint
+from string import ascii_letters, digits
 import tkinter as tk
 from tkinter import font
 from tkinter import ttk
@@ -53,7 +55,8 @@ if len(arguments) == 2 and arguments[1] == hash_str:
     print(updateMode())
     sys.exit(0)
 elif len(arguments) == 2:
-    print((Fernet.generate_key().decode(), Fernet.generate_key().decode(), Fernet.generate_key().decode(), Fernet.generate_key().decode()))
+    possible_characters = ascii_letters + digits
+    print(("".join([choice(possible_characters) for i in range(randint(15, 45))]), "".join([choice(possible_characters) for i in range(randint(15, 45))]), "".join([choice(possible_characters) for i in range(randint(15, 45))]), Fernet.generate_key().decode()))
     sys.exit(0)
 
 try:
