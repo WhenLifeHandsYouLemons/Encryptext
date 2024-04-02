@@ -9,7 +9,7 @@ Imports
 """
 import sys
 from os.path import abspath, join, expanduser
-#! from os import getenv     # Not useful right now, but could be useful if translations are available
+from os import getenv
 import json
 from random import choice, randint
 from string import ascii_letters, digits
@@ -213,8 +213,9 @@ class PreferenceWindow(tk.Toplevel):
             # Language picker
             self.selected_language = tk.StringVar(value=settings["otherSettings"]["language"])
             self.language_label = WrappedLabel(self.pref_window, text="Display language: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-            #! getenv("LANG").split(".")[0]      # Can be useful to get the user's default language
-            lang_options = ["en_US"]
+            # Get the user's default language and also display that in the list
+            # It doesn't change anything right now, but maybe it will in the future.
+            lang_options = ["en_US", getenv("LANG").split(".")[0]]
             self.language_val = ttk.Combobox(self.language_label, textvariable=self.selected_language, values=lang_options, state="readonly", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
             # show checkboxes for other true/false options
