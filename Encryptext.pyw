@@ -1203,6 +1203,11 @@ def addNewTab(Event=None):
         line_number_areas.append(TextLineNumbers(frames[-1], width=30))
         line_number_areas[-1].attach(textboxes[-1])
 
+    if settings["otherSettings"]["highlightActiveLine"] == True:
+        # Adapted from https://stackoverflow.com/a/9720858
+        textboxes[-1].tag_configure("current_line", background="#e9e9e9")
+        textboxes[-1].tag_raise("sel", "current_line")
+
     # Create scroll bar and link it
     scroll_bars = []
     scroll_bars.append([tk.Scrollbar(frames[-1], orient=tk.VERTICAL, cursor="arrow", command=textboxes[-1].yview)])
@@ -1235,9 +1240,15 @@ def addNewTab(Event=None):
 
     # Track document changes and update markdown preview
     textboxes[-1].bind('<Key>', trackChanges)
-    if settings["otherSettings"]["showLineNumbers"] == True:
+    if settings["otherSettings"]["showLineNumbers"] == True and settings["otherSettings"]["highlightActiveLine"] == True:
+        textboxes[-1].bind("<<Change>>", updateHighlightAndNumbers)
+        textboxes[-1].bind("<Configure>", updateHighlightAndNumbers)
+    elif settings["otherSettings"]["showLineNumbers"] == True:
         textboxes[-1].bind("<<Change>>", line_number_areas[-1].redraw)
         textboxes[-1].bind("<Configure>", line_number_areas[-1].redraw)
+    elif settings["otherSettings"]["highlightActiveLine"] == True:
+        textboxes[-1].bind("<<Change>>", updateActiveLine)
+        textboxes[-1].bind("<Configure>", updateActiveLine)
 
     # Sets the tab focus to the newly created tab
     tab_panes.select(tab_panes.tabs()[-1])
@@ -1283,6 +1294,21 @@ def getCurrentTab() -> int:
         return tab_panes.index("current")
     except: # Returns -1 if there are no tabs
         return -1
+
+# Update both the highlight and line numbers
+def updateHighlightAndNumbers(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab != -1:
+        line_number_areas[current_tab].redraw()
+        updateActiveLine()
+
+# Update the textbox's current line highlight
+# Adapted from https://stackoverflow.com/a/9720858
+def updateActiveLine(Event=None):
+    current_tab = getCurrentTab()
+    if current_tab != -1:
+        textboxes[current_tab].tag_remove("current_line", "1.0", "end")
+        textboxes[current_tab].tag_add("current_line", "insert linestart", "insert lineend+1c")
 
 def setSaveStatus(save: bool, current_tab: int) -> None:
     saved[current_tab] = save
