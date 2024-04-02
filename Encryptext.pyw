@@ -63,6 +63,19 @@ try:
     settings_path = join(expanduser("~"), ".encryptext", "settings.json")
     with open(settings_path, "r", encoding="utf-8") as file:
         settings = json.load(file)
+    # Replace the "true" and "false" strings with the boolean version
+    for key, value in settings.items():
+        if isinstance(value, dict):
+            for sub_key, sub_value in value.items():
+                if sub_value == "false":
+                    settings[key][sub_key] = False
+                elif sub_value == "true":
+                    settings[key][sub_key] = True
+        else:
+            if value == "false":
+                settings[key] = False
+            elif value == "true":
+                settings[key] = True
 except FileNotFoundError:
     settings = {
         "version": "'Encryptext Offline Mode'",
@@ -88,7 +101,61 @@ font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
 """
 Custom Classes
 """
-# From: https://www.reddit.com/r/learnpython/comments/6dndqz/comment/di42keo/
+# https://stackoverflow.com/a/16375233
+class TextLineNumbers(tk.Canvas):
+    def __init__(self, *args, **kwargs):
+        tk.Canvas.__init__(self, *args, **kwargs)
+        self.textwidget = None
+
+    def attach(self, text_widget):
+        self.textwidget = text_widget
+
+    def redraw(self, *args):
+        '''redraw line numbers'''
+        self.delete("all")
+
+        i = self.textwidget.index("@0,0")
+        while True :
+            dline= self.textwidget.dlineinfo(i)
+            if dline is None: break
+            y = dline[1]
+            linenum = str(i).split(".")[0]
+            self.create_text(2,y,anchor="nw", text=linenum)
+            i = self.textwidget.index("%s+1line" % i)
+
+# https://stackoverflow.com/a/16375233
+class CustomText(tk.Text):
+    def __init__(self, *args, **kwargs):
+        tk.Text.__init__(self, *args, **kwargs)
+
+        # create a proxy for the underlying widget
+        self._orig = self._w + "_orig"
+        self.tk.call("rename", self._w, self._orig)
+        self.tk.createcommand(self._w, self._proxy)
+
+    def _proxy(self, *args):
+        # let the actual widget perform the requested action
+        try:
+            cmd = (self._orig,) + args
+            result = self.tk.call(cmd)
+        except tk._tkinter.TclError:
+            result = ""
+
+        # generate an event if something was added or deleted,
+        # or the cursor position changed
+        if (args[0] in ("insert", "replace", "delete") or
+            args[0:3] == ("mark", "set", "insert") or
+            args[0:2] == ("xview", "moveto") or
+            args[0:2] == ("xview", "scroll") or
+            args[0:2] == ("yview", "moveto") or
+            args[0:2] == ("yview", "scroll")
+        ):
+            self.event_generate("<<Change>>", when="tail")
+
+        # return what the actual widget returned
+        return result
+
+# https://www.reddit.com/r/learnpython/comments/6dndqz/comment/di42keo/
 class WrappedLabel(ttk.Label):
     """a type of Label that automatically adjusts the wrap to the size"""
     def __init__(self, master=None, **kwargs):
@@ -346,7 +413,9 @@ max_history = 50
 file_format_tags = []
 file_format_tag_nums = []
 
+frames = []
 textboxes = []
+line_number_areas = []
 
 saved = []
 prev_key = ""
@@ -1109,12 +1178,15 @@ def showQuickMenu(Event=None):
         rightclickmenu.grab_release()
 
 def addNewTab(Event=None):
+    # Create a frame to add all the stuff to
+    frames.append(tk.Frame(tab_panes, cursor="xterm"))
+
     # Create new textbox
     if settings["otherSettings"]["wrapLines"] == True:
         wrap_mode = "word"
     else:
         wrap_mode = "none"
-    textboxes.append(tk.Text(tab_panes, state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap=wrap_mode))
+    textboxes.append(CustomText(frames[-1], state=tk.NORMAL, font=(default_font_type, default_font_size, "normal"), cursor="xterm", wrap=wrap_mode))
 
     # Create new tab info slot in arrays
     file_save_locations.append("")
@@ -1127,10 +1199,13 @@ def addNewTab(Event=None):
     font_type.append(default_font_type)
     saved.append(True)
 
+    if settings["otherSettings"]["showLineNumbers"] == True:
+        line_number_areas.append(TextLineNumbers(frames[-1], width=30))
+        line_number_areas[-1].attach(textboxes[-1])
+
     # Create scroll bar and link it
     scroll_bars = []
-    scroll_bars.append([tk.Scrollbar(textboxes[-1], orient=tk.VERTICAL, cursor="arrow")])
-    scroll_bars[-1][0].config(command=textboxes[-1].yview)
+    scroll_bars.append([tk.Scrollbar(frames[-1], orient=tk.VERTICAL, cursor="arrow", command=textboxes[-1].yview)])
     textboxes[-1].config(yscrollcommand=scroll_bars[-1][0].set)
 
     if settings["otherSettings"]["wrapLines"] == False:
@@ -1139,24 +1214,30 @@ def addNewTab(Event=None):
         textboxes[-1].config(xscrollcommand=scroll_bars[-1][1].set)
 
     # Add to display
-    textboxes[-1].pack(side=tk.TOP, fill=tk.BOTH)
+    frames[-1].pack(side=tk.TOP, fill=tk.BOTH)
+    if settings["otherSettings"]["showLineNumbers"] == True:
+        line_number_areas[-1].pack(side=tk.LEFT, fill=tk.Y)
+    textboxes[-1].pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     scroll_bars[-1][0].pack(side=tk.RIGHT, fill=tk.Y)
 
     if settings["otherSettings"]["wrapLines"] == False:
         scroll_bars[-1][1].pack(side=tk.BOTTOM, fill=tk.X)
 
-    tab_panes.add(textboxes[-1], text=" Untitled ")
+    tab_panes.add(frames[-1], text=" Untitled ")
 
     # Allow right-click menu to show up
     textboxes[-1].bind("<Button-3>", showQuickMenu)
 
-    # Fix Ctrl+T switching last char in textbox
+    # Fix shortcut doing built-in process instead of custom process in textbox
     # https://stackoverflow.com/a/54185644
     bindtags = textboxes[-1].bindtags()
     textboxes[-1].bindtags((bindtags[2], bindtags[0], bindtags[1], bindtags[3]))
 
     # Track document changes and update markdown preview
     textboxes[-1].bind('<Key>', trackChanges)
+    if settings["otherSettings"]["showLineNumbers"] == True:
+        textboxes[-1].bind("<<Change>>", line_number_areas[-1].redraw)
+        textboxes[-1].bind("<Configure>", line_number_areas[-1].redraw)
 
     # Sets the tab focus to the newly created tab
     tab_panes.select(tab_panes.tabs()[-1])
@@ -1245,9 +1326,9 @@ def captureSpecialKeys(Event=None):
         openPreview()
     elif cur_key == "P":
         preview_window.closeWindow()
-    elif cur_key == "+":
+    elif cur_key == "plus" and mod_key == 5:
         increaseFont()
-    elif cur_key == "_":
+    elif cur_key == "underscore" and mod_key == 5:
         decreaseFont()
     elif cur_key == "i":
         changeToItalic()
@@ -1255,6 +1336,12 @@ def captureSpecialKeys(Event=None):
         changeToBold()
     elif cur_key == "n":
         changeToNormal()
+    elif cur_key == "c":
+        copy()
+    elif cur_key == "v":
+        paste()
+    elif cur_key == "a":
+        selectAll()
 
     return "break"
 
