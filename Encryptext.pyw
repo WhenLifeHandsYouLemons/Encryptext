@@ -730,14 +730,16 @@ def newFile(Event=None):
 
         updatePreview()
 
-def saveFile(Event=None):
+def saveFile(Event=None, auto_save=False):
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
     # If it's a new file
     if file_save_locations[current_tab] == "":
-        saveFileAs()
+        # If it's being saved manually, then try save as
+        if not auto_save:
+            saveFileAs()
     else:
         # Get the text from the current textbox
         text = textboxes[current_tab].get("1.0", tk.END)
