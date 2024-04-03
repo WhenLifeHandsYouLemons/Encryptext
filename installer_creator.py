@@ -3,7 +3,6 @@
 from os import rename, path, remove
 from shutil import rmtree
 import hashlib
-
 import PyInstaller.__main__
 
 version = "1.9.0"
@@ -61,7 +60,9 @@ with open("encryptext_installer.py", "r+") as file:
     file.truncate()
 
 # Move the exe out of the dist folder
-remove(f"encryptext_installer_v{version}_64bit.exe")
+try:
+    remove(f"encryptext_installer_v{version}_64bit.exe")
+except FileNotFoundError: pass
 rename(path.join("dist", "encryptext_installer.exe"), f"encryptext_installer_v{version}_64bit.exe")
 
 # Remove pyinstaller folders and files
