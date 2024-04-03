@@ -1289,6 +1289,8 @@ def closeCurrentTab(Event=None):
         file_format_tags.pop(current_tab)
         file_format_tag_nums.pop(current_tab)
         saved.pop(current_tab)
+        frames.pop(current_tab)
+        line_number_areas.pop(current_tab)
 
     updatePreview()
 
