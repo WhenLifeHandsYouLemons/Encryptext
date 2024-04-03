@@ -34,7 +34,7 @@ def getTrueFilename(filename):
         base = abspath(".")
     return join(base, filename)
 
-debug = True
+debug = False
 
 # ENCRYPTION KEY HERE
 encrypt_key = b''# ENCRYPTION KEY HERE
