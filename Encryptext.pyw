@@ -1339,6 +1339,8 @@ def captureSpecialKeys(Event=None):
     cur_key = Event.keysym
     mod_key = Event.state
 
+    # print(Event, cur_key, mod_key)
+
     # Run function based on what key was pressed
     if cur_key == "s":
         saveFile()
