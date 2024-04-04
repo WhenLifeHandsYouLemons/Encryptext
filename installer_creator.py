@@ -1,9 +1,12 @@
 #!/usr/bin/python'
 
 from os import rename, path, remove
-from shutil import rmtree
+from shutil import rmtree, copy
 import hashlib
 import PyInstaller.__main__
+
+version = "1.9.1"
+testing = False
 
 def update_build_number():
     with open("Original Files/build_number.txt", "r") as file:
@@ -13,7 +16,6 @@ def update_build_number():
         file.write(str(build_number))
     return build_number
 
-version = "1.9.1"
 build_number = update_build_number()
 version = f"{version}.{build_number}"
 
@@ -97,7 +99,12 @@ except Exception as e:
 modifyInstallerFile(False)
 
 # Move the exe out of the dist folder
-rename(path.join("dist", "encryptext_installer.exe"), f"encryptext_installer_v{version}_64bit.exe")
+if testing:
+    rename(path.join("dist", "encryptext_installer.exe"), f"builds/testing/encryptext_installer_v{version}_64bit.exe")
+else:
+    copy(path.join("dist", "encryptext_installer.exe"), f"builds/testing/encryptext_installer_v{version}_64bit_release.exe")
+    version = '.'.join(version.split('.')[0:-1])
+    rename(path.join("dist", "encryptext_installer.exe"), f"builds/release/encryptext_installer_v{version}_64bit.exe")
 
 # Remove pyinstaller folders and files
 rmtree("dist")

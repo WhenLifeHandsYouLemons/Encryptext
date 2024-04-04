@@ -95,7 +95,7 @@ except FileNotFoundError:
         }
     }
 
-version = settings["version"]
+version = f"{'.'.join(settings['version'].split('.')[0:-1])} (build {settings['version'].split('.')[-1]})"
 font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
 
 """
@@ -111,7 +111,6 @@ class TextLineNumbers(tk.Canvas):
         self.textwidget = text_widget
 
     def redraw(self, *args):
-        '''redraw line numbers'''
         self.delete("all")
 
         i = self.textwidget.index("@0,0")
@@ -157,7 +156,6 @@ class CustomText(tk.Text):
 
 # https://www.reddit.com/r/learnpython/comments/6dndqz/comment/di42keo/
 class WrappedLabel(ttk.Label):
-    """a type of Label that automatically adjusts the wrap to the size"""
     def __init__(self, master=None, **kwargs):
         ttk.Label.__init__(self, master, **kwargs)
         self.bind("<Configure>", lambda e: self.config(wraplength=self.winfo_width()))
