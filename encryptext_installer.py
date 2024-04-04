@@ -4,7 +4,6 @@ from os import rename, remove, rmdir, makedirs, listdir, path, environ
 from shutil import rmtree
 import sys
 from subprocess import run, PIPE
-from time import sleep
 import json
 from cryptography.fernet import Fernet as F
 from random import choice, randint
@@ -13,7 +12,7 @@ import threading as t
 # https://github.com/rsalmei/alive-progress
 from alive_progress import alive_bar, styles
 
-version = "1.9.0"
+version = "INSERT VERSION NUMBER HERE"
 
 print("\nStarting installer...")
 print("Please wait...")

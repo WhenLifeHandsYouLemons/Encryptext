@@ -9,7 +9,7 @@ Imports
 """
 import sys
 from os.path import abspath, join, expanduser
-from os import getenv
+# from os import getenv     #! DOESN'T SEEM TO WORK IN EXE MODE
 import json
 from random import choice, randint
 from string import ascii_letters, digits
@@ -78,7 +78,7 @@ try:
                 settings[key] = True
 except FileNotFoundError:
     settings = {
-        "version": "'Encryptext Offline Mode'",
+        "version": "'Encryptext Travel Mode'",
         "recentFilePaths": [],
         "maxRecentFiles": 0,
         "otherSettings": {
@@ -95,7 +95,7 @@ except FileNotFoundError:
         }
     }
 
-version = settings["version"]
+version = f"{'.'.join(settings['version'].split('.')[0:-1])} (build {settings['version'].split('.')[-1]})"
 font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
 
 """
@@ -111,7 +111,6 @@ class TextLineNumbers(tk.Canvas):
         self.textwidget = text_widget
 
     def redraw(self, *args):
-        '''redraw line numbers'''
         self.delete("all")
 
         i = self.textwidget.index("@0,0")
@@ -157,7 +156,6 @@ class CustomText(tk.Text):
 
 # https://www.reddit.com/r/learnpython/comments/6dndqz/comment/di42keo/
 class WrappedLabel(ttk.Label):
-    """a type of Label that automatically adjusts the wrap to the size"""
     def __init__(self, master=None, **kwargs):
         ttk.Label.__init__(self, master, **kwargs)
         self.bind("<Configure>", lambda e: self.config(wraplength=self.winfo_width()))
@@ -215,7 +213,9 @@ class PreferenceWindow(tk.Toplevel):
             self.language_label = WrappedLabel(self.pref_window, text="Display language: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             # Get the user's default language and also display that in the list
             # It doesn't change anything right now, but maybe it will in the future.
-            lang_options = ["en_US", getenv("LANG").split(".")[0]]
+            #! DOESN'T SEEM TO WORK IN EXE MODE
+            # getenv("LANG").split(".")[0]
+            lang_options = ["en_US"]
             self.language_val = ttk.Combobox(self.language_label, textvariable=self.selected_language, values=lang_options, state="readonly", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
             # show checkboxes for other true/false options
@@ -458,10 +458,14 @@ def quitApp(Event=None):
             with open(settings_path, "w") as file:
                 settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
                 file.write(str(settings))
-        except FileNotFoundError: pass
+        except FileNotFoundError or NameError as e:
+            if debug:
+                messagebox.askokcancel("ERROR", f"Error: {e}")
+        except Exception as e:
+            messagebox.askokcancel("ERROR", f"Error: {e}")
 
         try:
-            md_preview_window.destroy()
+            preview_window.destroy()
             pref_window.closeWindow()
         finally:
             root.destroy()
@@ -484,10 +488,14 @@ def quitApp(Event=None):
             with open(settings_path, "w") as file:
                 settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
                 file.write(str(settings))
-        except FileNotFoundError: pass
+        except FileNotFoundError or NameError as e:
+            if debug:
+                messagebox.showerror("ERROR", f"Error: {e}")
+        except Exception:
+            messagebox.showerror("Error", "Unknown error. If this problem persists, please contact the developer at 'https://github.com/WhenLifeHandsYouLemons/Encryptext'.")
 
         try:
-            md_preview_window.destroy()
+            preview_window.destroy()
             pref_window.closeWindow()
         finally:
             root.destroy()
@@ -674,9 +682,9 @@ def openFile(Event=None, current=False, file_path=None):
                         recent_files.pop()
                 createMenuBar()
             if file_extensions[current_tab] == "md":
-                global md_preview_window
+                global preview_window
                 try:
-                    md_preview_window.deiconify()
+                    preview_window.deiconify()
                     updatePreview()
                 except:
                     preview_window.__init__()
@@ -1242,7 +1250,7 @@ def addNewTab(Event=None):
     textboxes[-1].bindtags((bindtags[2], bindtags[0], bindtags[1], bindtags[3]))
 
     # Track document changes and update markdown preview
-    textboxes[-1].bind('<Key>', trackChanges)
+    textboxes[-1].bind('<<Change>>', trackChanges)
     if settings["otherSettings"]["showLineNumbers"] == True and settings["otherSettings"]["highlightActiveLine"] == True:
         textboxes[-1].bind("<<Change>>", updateHighlightAndNumbers)
         textboxes[-1].bind("<Configure>", updateHighlightAndNumbers)
@@ -1289,6 +1297,9 @@ def closeCurrentTab(Event=None):
         file_format_tags.pop(current_tab)
         file_format_tag_nums.pop(current_tab)
         saved.pop(current_tab)
+        frames.pop(current_tab)
+        if settings["otherSettings"]["showLineNumbers"] == True:
+            line_number_areas.pop(current_tab)
 
     updatePreview()
 
@@ -1327,6 +1338,8 @@ def setSaveStatus(save: bool, current_tab: int) -> None:
 def captureSpecialKeys(Event=None):
     cur_key = Event.keysym
     mod_key = Event.state
+
+    # print(Event, cur_key, mod_key)
 
     # Run function based on what key was pressed
     if cur_key == "s":
