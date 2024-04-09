@@ -228,8 +228,8 @@ class PreferenceWindow(tk.Toplevel):
 
             # Auto-save interval number
             self.selected_auto_save_interval_val = tk.IntVar(value=settings["otherSettings"]["autoSaveInterval"])
-            self.auto_save_interval_label = WrappedLabel(self.pref_window, text="Auto-save interval: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-            self.auto_save_interval_val = ttk.Spinbox(self.auto_save_interval_label, textvariable=self.selected_auto_save_interval_val, from_=1, to=300, increment=15, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.auto_save_interval_label = WrappedLabel(self.pref_window, text="Auto-save interval (seconds): ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+            self.auto_save_interval_val = ttk.Spinbox(self.auto_save_interval_label, textvariable=self.selected_auto_save_interval_val, from_=1, to=600, increment=5, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
             self.auto_save_interval_label.pack(side="top", fill="x", padx=5, anchor="nw")
             self.auto_save_interval_val.pack(side="right", padx=20, pady=self.option_pady)
@@ -444,6 +444,11 @@ def updateTags():
 
     tags_used = textboxes[current_tab].tag_names()
     i = 0
+
+    # Convert the tuple into a list to remove the "sel" tag
+    # The "sel" tag caused issues when saving if there was text selected
+    tags_used = list(tags_used)
+    tags_used.remove("sel")
     for tag in tags_used:
         indices = textboxes[current_tab].tag_ranges(tag)
         for start, end in zip(indices[::2], indices[1::2]):
@@ -691,13 +696,15 @@ def openFile(Event=None, current=False, file_path=None):
                     if len(recent_files) > settings["maxRecentFiles"]:
                         recent_files.pop()
                 createMenuBar()
-            if file_extensions[current_tab] == "md":
-                global preview_window
-                try:
-                    preview_window.deiconify()
-                    updatePreview()
-                except:
-                    preview_window.__init__()
+
+                # Open the preview window if a markdown file is opened
+                if file_extensions[current_tab] == "md":
+                    global preview_window
+                    try:
+                        preview_window.deiconify()
+                        updatePreview()
+                    except:
+                        preview_window.__init__()
         else:
             text = textboxes[current_tab].get("1.0", tk.END)
             textboxes[current_tab].delete("1.0", tk.END)
@@ -747,6 +754,16 @@ def newFile(Event=None):
         tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
 
         updatePreview()
+
+def autoSaveFile():
+    # Save the file if there is a tab open
+    current_tab = getCurrentTab()
+    if current_tab != -1:
+        saveFile(auto_save=True)
+
+    # Recursively run autoSaveFile until program is closed (sys.exit kills all processes)
+    # Delay time is in milliseconds
+    root.after(settings["otherSettings"]["autoSaveInterval"]*1000, autoSaveFile)
 
 def saveFile(Event=None, auto_save=False):
     current_tab = getCurrentTab()
@@ -1457,6 +1474,10 @@ addNewTab()
 # To make it more seamless
 # The preview window was the focused one before
 root.focus_force()
+
+# Set the autosave to start working
+if settings["otherSettings"]["autoSave"]:
+    autoSaveFile()
 
 """
 Menu Bar
