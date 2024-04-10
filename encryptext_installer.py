@@ -1,5 +1,9 @@
 #!/usr/bin/python'
 
+# Created by Sooraj S
+# https://encryptext.sooraj.dev
+# Free for everyone. Forever.
+
 from os import rename, remove, rmdir, makedirs, listdir, path, environ
 from shutil import rmtree
 import sys
@@ -118,18 +122,23 @@ while update != "u" and update != "i":
     update = input("\nAre you updating or installing Encryptext? [(u)pdating/(i)nstalling] ")
 
 # Open the Encryptext.pyw file and read it into a variable
-file = open(getTrueFilename("Encryptext.pyw"), "r", encoding="utf8")
-file = file.read()
-text = file
+with open(getTrueFilename("Encryptext.pyw"), "r", encoding="utf8") as file:
+    text = file.read()
+
+# Add version number to the file
+file = text.split("VERSION NUMBER HERE")
+text = version.join(file)
+
+# Change debug mode to False if it's True
+try:
+    file = text.split("debug = True")
+    text = "debug = False".join(file)
+except: pass
 
 # Adds computed hash to file
 hash_str = "INSERT COMPUTED HASH HERE"
-file = text.split("# HASH STRING HERE")
-hash_line = file[1].split("'")
-hash_line[1] = hash_str
-file[1] = "'".join(hash_line)
-
-text = "".join(file)
+file = text.split("HASH STRING HERE")
+text = hash_str.join(file)
 
 # Communicate to old program
 return_attributes = ""
@@ -143,9 +152,6 @@ if update == "u":
     except:
         raise Exception("Something went wrong! Please try again or file a crash report on GitHub.")
 
-# Find where the encryption key is stored in the file
-file = text.split("# ENCRYPTION KEY HERE")
-
 if update == "i":
     # Create a key and remove the b'' from the string
     key = F.generate_key().decode()
@@ -153,20 +159,12 @@ else:
     key = str(return_attributes[3].split("'")[1])
 
 # Add the key to the file
-key_line = file[1]
-key_line = key_line.split("'")
-key_line[1] = key
-key_line = "'".join(key_line)
-file[1] = key_line
-
-text = "".join(file)
+file = text.split("ENCRYPTION KEY HERE")
+text = key.join(file)
 
 print("Encryption key set!")
 
 possible_characters = ascii_letters + digits
-
-# Find where the format item separator string is stored in the file
-file = text.split("# FORMAT ITEM SEPARATOR HERE")
 
 if update == "i":
     # Create a format item separator string
@@ -175,16 +173,8 @@ else:
     format_item_separator = str(return_attributes[0].split("'")[1])
 
 # Add the format item separator string to the file
-key_line = file[1]
-key_line = key_line.split("'")
-key_line[1] = format_item_separator
-key_line = "'".join(key_line)
-file[1] = key_line
-
-text = "".join(file)
-
-# Find where the format separator string is stored in the file
-file = text.split("# FORMAT SEPARATOR HERE")
+file = text.split("FORMAT ITEM SEPARATOR HERE")
+text = format_item_separator.join(file)
 
 if update == "i":
     # Create a format separator string
@@ -193,16 +183,8 @@ else:
     format_separator = str(return_attributes[1].split("'")[1])
 
 # Add the format separator string to the file
-key_line = file[1]
-key_line = key_line.split("'")
-key_line[1] = format_separator
-key_line = "'".join(key_line)
-file[1] = key_line
-
-text = "".join(file)
-
-# Find where the format string is stored in the file
-file = text.split("# FORMAT STRING HERE")
+file = text.split("FORMAT SEPARATOR HERE")
+text = format_separator.join(file)
 
 if update == "i":
     # Create a format string
@@ -211,13 +193,8 @@ else:
     format_string = str(return_attributes[2].split("'")[1])
 
 # Add the format string to the file
-key_line = file[1]
-key_line = key_line.split("'")
-key_line[1] = format_string
-key_line = "'".join(key_line)
-file[1] = key_line
-
-text = "".join(file)
+file = text.split("FORMAT STRING HERE")
+text = format_string.join(file)
 
 print("Format strings set!")
 
@@ -231,7 +208,6 @@ while keep_settings != "y" and keep_settings != "n":
     keep_settings = input("\nDo you want to load your settings from an old version?\nNOTE: If you don't have an older version, it will create new settings by default [(y)es/(n)o] ")
 
 data = {
-    "version": version,
     "recentFilePaths": [],
     "maxRecentFiles": 5,
     "otherSettings": {
@@ -256,7 +232,6 @@ if keep_settings == "y":
             file = json.load(file)
 
         data = {
-            "version": version,
             "recentFilePaths": file["recentFilePaths"],
             "maxRecentFiles": file["maxRecentFiles"],
             "otherSettings": {
@@ -318,7 +293,7 @@ except: pass
 # Moves the exe out of the dist folder
 rename(path.join(dir_path, "dist", "encryptext.exe"), path.join(dir_path, f"encryptext_v{version}.exe"))
 
-# Create desktop shortcut
+# Create desktop shortcut for Windows
 # https://stackoverflow.com/a/69597224
 try:
     from win32com.client import Dispatch
@@ -333,7 +308,7 @@ try:
 except:
     print(f"Couldn't create Desktop shortcut!")
 
-# Create Start Menu shortcut
+# Create Start Menu shortcut for Windows
 try:
     # Create Start Menu folder for Encryptext
     makedirs(path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext"), exist_ok=True)
