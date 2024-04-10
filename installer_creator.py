@@ -5,14 +5,14 @@ from shutil import rmtree, copy
 import hashlib
 import PyInstaller.__main__
 
-version = "1.9.1"
+version = "1.9.2"
 testing = False
 
 def update_build_number():
-    with open("Original Files/build_number.txt", "r") as file:
+    with open("builds/build_number.txt", "r") as file:
         build_number = int(file.read().strip())
     build_number += 1
-    with open("Original Files/build_number.txt", "w") as file:
+    with open("builds/build_number.txt", "w") as file:
         file.write(str(build_number))
     return build_number
 
@@ -27,30 +27,25 @@ def computeHash(input_string: str) -> str:
     return hash_object.hexdigest()
 
 def modifyInstallerFile(add: bool) -> None:
-    if add:
-        # Add the computed hash and version number
-        with open("encryptext_installer.py", "r+") as file:
-            installer_file = file.read()
+    with open("encryptext_installer.py", "r+") as file:
+        installer_file = file.read()
+
+        if add:
+            # Add the computed hash and version number
             installer_parts = installer_file.split("INSERT COMPUTED HASH HERE")
             installer_file = hash_str.join(installer_parts)
             installer_parts = installer_file.split("INSERT VERSION NUMBER HERE")
             installer_file = version.join(installer_parts)
-
-            file.seek(0)
-            file.write(installer_file)
-            file.truncate()
-    else:
-        # Remove the computed hash and version number
-        with open("encryptext_installer.py", "r+") as file:
-            installer_file = file.read()
+        else:
+            # Remove the computed hash and version number
             installer_parts = installer_file.split(hash_str)
             installer_file = "INSERT COMPUTED HASH HERE".join(installer_parts)
             installer_parts = installer_file.split(version)
             installer_file = "INSERT VERSION NUMBER HERE".join(installer_parts)
 
-            file.seek(0)
-            file.write(installer_file)
-            file.truncate()
+        file.seek(0)
+        file.write(installer_file)
+        file.truncate()
 
 # Open the key.txt file and read in the key
 with open("Original Files/key.txt", "r") as file:

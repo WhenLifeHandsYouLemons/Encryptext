@@ -34,18 +34,16 @@ def getTrueFilename(filename):
         base = abspath(".")
     return join(base, filename)
 
-debug = False
+debug = True
+version = "VERSION NUMBER HERE"
 
-# ENCRYPTION KEY HERE
-encrypt_key = b''# ENCRYPTION KEY HERE
+hash_str = "HASH STRING HERE"
+encrypt_key = b"ENCRYPTION KEY HERE"
 
-# Uses random random-length strings of characters to determine where formatting starts and stops# FORMAT ITEM SEPARATOR HERE
-format_item_separator = ''# FORMAT ITEM SEPARATOR HERE# FORMAT SEPARATOR HERE
-format_separator = ''# FORMAT SEPARATOR HERE# FORMAT STRING HERE
-format_string = ''# FORMAT STRING HERE
-
-# HASH STRING HERE
-hash_str = ''# HASH STRING HERE
+# Uses random random-length strings of characters to determine where formatting starts and stops
+format_item_separator = "FORMAT ITEM SEPARATOR HERE"
+format_separator = "FORMAT SEPARATOR HERE"
+format_string = "FORMAT STRING HERE"
 
 def updateMode() -> tuple:
     return (format_item_separator, format_separator, format_string, encrypt_key)
@@ -76,9 +74,10 @@ try:
                 settings[key] = False
             elif value == "true":
                 settings[key] = True
+
+    version = f"{'.'.join(version.split('.')[0:-1])} (build {version.split('.')[-1]})"
 except FileNotFoundError:
     settings = {
-        "version": "'Encryptext Travel Mode'",
         "recentFilePaths": [],
         "maxRecentFiles": 0,
         "otherSettings": {
@@ -95,7 +94,8 @@ except FileNotFoundError:
         }
     }
 
-version = f"{'.'.join(settings['version'].split('.')[0:-1])} (build {settings['version'].split('.')[-1]})"
+    version = "'Encryptext Travel Mode'"
+
 font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
 
 """
@@ -365,8 +365,6 @@ root.iconbitmap(getTrueFilename("app_icon.ico"))
 """
 Variables
 """
-update_file_title = " DO NOT SAVE THIS FILE "
-
 file_save_locations = []
 file_extensions = []
 
@@ -445,10 +443,17 @@ def updateTags():
     tags_used = textboxes[current_tab].tag_names()
     i = 0
 
-    # Convert the tuple into a list to remove the "sel" tag
-    # The "sel" tag caused issues when saving if there was text selected
+    # Convert the tuple into a list to remove the "sel" and "current_line" tag
+    # These tags caused issues when saving
     tags_used = list(tags_used)
-    tags_used.remove("sel")
+    try:
+        tags_used.remove("sel")
+    finally:
+        try:
+            # Throws an error if highlightActiveLine setting isn't on
+            tags_used.remove("current_line")
+        except ValueError: pass
+
     for tag in tags_used:
         indices = textboxes[current_tab].tag_ranges(tag)
         for start, end in zip(indices[::2], indices[1::2]):
@@ -1010,11 +1015,6 @@ def editingMode(Event=None):
     if current_tab == -1:
         return None
 
-    # Don't allow the encryption key tab to be edited
-    tab_title = tab_panes.tab(tab_panes.tabs()[getCurrentTab()])["text"]
-    if tab_title == update_file_title:
-        return None
-
     # Set the textbox to be writable
     textboxes[current_tab].config(state=tk.NORMAL)
 
@@ -1075,25 +1075,6 @@ def selectWholeWord(direction, Event=None):
 
 def openPreferences():
     pref_window.__init__()
-
-def updateMenu(Event=None):
-    current_tab = getCurrentTab()
-    if current_tab == -1:
-        addNewTab()
-
-    messagebox.showinfo("Update Encryptext", """1. Run the new version's installer\n2. When it asks whether you're installing or updating, choose updating.\n3. When it asks for the old enryption key and other strings, copy and paste the ones shown in the text editor here.\n\nClick 'Ok' to view the keys.\n\nDO NOT SAVE THE DOCUMENT WITH THE KEYS.""")
-
-    key = encrypt_key.decode()
-
-    # Change the title
-    tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=update_file_title)
-
-    # Add the needed strings to the box
-    textboxes[current_tab].delete("1.0", tk.END)
-    textboxes[current_tab].insert("1.0", f"Encryption Key: {key}\nFormat Item Separator: {format_item_separator}\nFormat Separator String: {format_separator}\nFormat String: {format_string}")
-
-    # Enter viewing mode so that the string can't be accidentally changed
-    viewingMode()
 
 def aboutMenu(Event=None):
     messagebox.showinfo("About Encryptext", f"Unlock a new level of security and versatility with Encryptext, the text editor designed for the modern user. Seamlessly blending essential features with modern encryption technology, Encryptext ensures your documents are safeguarded like never before.\n\nFree for everyone. Forever. ❤\n\nVersion {version}")
@@ -1555,8 +1536,6 @@ def createMenuBar():
     textstylemenu.add_command(label="Normal", accelerator="Alt+N", command=changeToNormal)
     textstylemenu.add_command(label="Bold", accelerator="Ctrl+B", command=changeToBold)
     textstylemenu.add_command(label="Italic", accelerator="Ctrl+I", command=changeToItalic)
-
-    helpmenu.add_command(label="Update Encryptext", command=updateMenu)
 
     helpmenu.add_command(label="About Encryptext", command=aboutMenu)
     helpmenu.add_command(label="Encryptext on GitHub", command=documentation)
