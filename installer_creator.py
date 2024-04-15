@@ -5,8 +5,8 @@ from shutil import rmtree, copy
 import hashlib
 import PyInstaller.__main__
 
-version = "1.9.2"
 testing = False
+version = "1.9.3"
 
 def update_build_number():
     with open("builds/build_number.txt", "r") as file:

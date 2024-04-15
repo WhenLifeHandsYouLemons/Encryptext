@@ -5,3 +5,4 @@ markdown
 PyInstaller
 alive_progress
 pywin32
+pygments
