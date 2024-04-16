@@ -25,6 +25,7 @@ from cryptography.fernet import Fernet  # For encryption features
 # For Markdown preview features
 import tkinterweb
 from markdown import markdown
+from ttkbootstrap import Style
 
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
@@ -428,8 +429,14 @@ class PreviewWindow(tk.Toplevel):
 """
 Window Settings
 """
-# Create the window
-root = tk.Tk()
+# Create the window and configure the background for theme changes
+if settings["otherSettings"]["theme"] == "light":
+    styles = Style(theme="cosmo")
+else:
+    styles = Style(theme="darkly")
+
+# root = tk.Tk()
+root = styles.master
 pref_window = PreferenceWindow(close=True)
 preview_window = PreviewWindow(close=True)
 
@@ -453,16 +460,13 @@ min_font_size = 8
 font_sizes = []
 font_type = []
 
-button_style = ttk.Style()
-button_style.configure("TButton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-notebook_style = ttk.Style()
-notebook_style.configure("TNotebook", tabposition="nw", padding=5)
-notebook_tab_style = ttk.Style()
-notebook_tab_style.configure("TNotebook.Tab", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))), expand=-1)
-radio_button_style = ttk.Style()
-radio_button_style.configure("TRadiobutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-check_button_style = ttk.Style()
-check_button_style.configure("TCheckbutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+# These are just general font styles for all text items
+other_styles = ttk.Style()
+other_styles.configure("TButton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+other_styles.configure("TNotebook", tabposition="nw", padding=5)
+other_styles.configure("TNotebook.Tab", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))), expand=-1)
+other_styles.configure("TRadiobutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+other_styles.configure("TCheckbutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
 recent_files = settings["recentFilePaths"]
 
@@ -545,7 +549,7 @@ def updateTags():
 
     return formatted_tags
 
-def quitApp(Event=None):
+def quitApp(Event=None, force=False):
     global settings
 
     current_tab = getCurrentTab()
@@ -571,9 +575,10 @@ def quitApp(Event=None):
 
     # Check if any of the tabs are not saved yet
     quit_confirm = True
-    for save_status in saved:
-        if save_status == False:
-            quit_confirm = False
+    if not force:
+        for save_status in saved:
+            if save_status == False:
+                quit_confirm = False
 
     # If there's one that's not empty, then show warning
     if not quit_confirm:
@@ -641,7 +646,7 @@ def openFile(Event=None, current=False, file_path=None):
             file_name = file_save_locations[current_tab].split("/")[-1]
 
             # Set the title of the window to the file name
-            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=f" {file_name} ")
+            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=f"{file_name} ")
 
             # Set the current textbox to be writable
             textboxes[current_tab].config(state=tk.NORMAL)
@@ -834,7 +839,7 @@ def newFile(Event=None):
         current_versions[current_tab] = 1
         setSaveStatus(True, current_tab)
 
-        tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
+        tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text="Untitled ")
 
         updatePreview()
 
@@ -1010,21 +1015,26 @@ def trackChanges(Event=None, override=False):
     if current_tab == -1:
         return None
 
+    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Shift_L", "Shift_R", "Left", "Up", "Down", "Right", "Caps_Lock", "Escape", "Win_L", "Win_R"]
+    key_update = ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]
+
     # This forces an additional update to the key event
     # Necessary for updating the preview
-    if Event.keycode != -1:
-        textboxes[current_tab].event_generate("<Key>", when="tail", keycode=-1)
+    if not override and (Event.keysym not in key_ignore and Event.time > 1):
+        if Event.keysym in key_update:
+            textboxes[current_tab].event_generate("<Key>", when="tail", time=1)
+        else:
+            textboxes[current_tab].event_generate("<Key>", when="tail", time=0)
         return None
 
     # Set save status to False if it's been changed
-    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Shift_L", "Shift_R"]
     try:
         if (Event.state <= 1 and Event.keysym not in key_ignore):
             setSaveStatus(False, current_tab)
     except: pass
 
     try:
-        if (Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]) or (override):
+        if (Event.time == 1) or (override):
             global file_histories, current_versions
 
             # Check if the first version is empty
@@ -1369,7 +1379,7 @@ def addNewTab(Event=None):
     if settings["otherSettings"]["wrapLines"] == False:
         scroll_bars[-1][1].pack(side=tk.BOTTOM, fill=tk.X)
 
-    tab_panes.add(frames[-1], text=" Untitled ")
+    tab_panes.add(frames[-1], text="Untitled ")
 
     # Allow right-click menu to show up
     textboxes[-1].bind("<Button-3>", showQuickMenu)
@@ -1416,7 +1426,10 @@ def closeCurrentTab(Event=None):
     if not close_tab_confirm:
         close_tab_confirm = messagebox.askyesno("Close Tab", "Close current tab?\n\nAny unsaved changes will be lost.")
 
-    if close_tab_confirm:
+    # If there's only one tab, then just close the app
+    if len(tab_panes.tabs()) == 1:
+        quitApp(force=True)
+    elif close_tab_confirm:
         # Remove any tab info from arrays
         tab_panes.forget(current_tab)
         textboxes.pop(current_tab)
@@ -1460,10 +1473,10 @@ def setSaveStatus(save: bool, current_tab: int) -> None:
     tab_title = tab_panes.tab(cur_tab_id)["text"]
     if not save:
         if "*" not in tab_title:
-            tab_panes.tab(cur_tab_id, text=f"{tab_panes.tab(cur_tab_id)['text']}*")
+            tab_panes.tab(cur_tab_id, text=f"{''.join(tab_panes.tab(cur_tab_id)['text'].split(' ')[0:-1])}* ")
     else:
         if "*" in tab_title:
-            tab_panes.tab(cur_tab_id, text=tab_panes.tab(cur_tab_id)['text'].split("*")[0])
+            tab_panes.tab(cur_tab_id, text=f"{tab_panes.tab(cur_tab_id)['text'].split('*')[0]} ")
 
 def captureSpecialKeys(Event=None):
     cur_key = Event.keysym
