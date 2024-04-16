@@ -184,6 +184,10 @@ class TextLineNumbers(tk.Canvas):
     def __init__(self, *args, **kwargs):
         tk.Canvas.__init__(self, *args, **kwargs)
         self.textwidget = None
+        if settings["otherSettings"]["theme"] == "light":
+            self.configure(bg="#f7f7f7")
+        else:
+            self.configure(bg="#1c1c1c")
 
     def attach(self, text_widget):
         self.textwidget = text_widget
@@ -197,7 +201,10 @@ class TextLineNumbers(tk.Canvas):
             if dline is None: break
             y = dline[1]
             linenum = str(i).split(".")[0]
-            self.create_text(2,y,anchor="nw", text=linenum)
+            if settings["otherSettings"]["theme"] == "light":
+                self.create_text(2,y,anchor="nw", text=linenum, fill="#000000")
+            else:
+                self.create_text(2,y,anchor="nw", text=linenum, fill="#ffffff")
             i = self.textwidget.index("%s+1line" % i)
 
 # https://stackoverflow.com/a/16375233
@@ -463,7 +470,7 @@ font_type = []
 # These are just general font styles for all text items
 other_styles = ttk.Style()
 other_styles.configure("TButton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-other_styles.configure("TNotebook", tabposition="nw", padding=5)
+other_styles.configure("TNotebook", tabposition="nw", padding=2)
 other_styles.configure("TNotebook.Tab", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))), expand=-1)
 other_styles.configure("TRadiobutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 other_styles.configure("TCheckbutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
@@ -1356,7 +1363,10 @@ def addNewTab(Event=None):
 
     if settings["otherSettings"]["highlightActiveLine"] == True:
         # Adapted from https://stackoverflow.com/a/9720858
-        textboxes[-1].tag_configure("current_line", background="#e9e9e9")
+        if settings["otherSettings"]["theme"] == "light":
+            textboxes[-1].tag_configure("current_line", background="#e9e9e9")
+        else:
+            textboxes[-1].tag_configure("current_line", background="#262626")
         textboxes[-1].tag_raise("sel", "current_line")
 
     # Create scroll bar and link it
@@ -1417,7 +1427,7 @@ def closeCurrentTab(Event=None):
     # If their settings are configured to close all tabs
     if settings["otherSettings"]["closeAllTabs"] == True:
         quitApp()
-        return None
+        return "break"
 
     close_tab_confirm = True
     if saved[current_tab] == False:
@@ -1427,7 +1437,7 @@ def closeCurrentTab(Event=None):
         close_tab_confirm = messagebox.askyesno("Close Tab", "Close current tab?\n\nAny unsaved changes will be lost.")
 
     # If there's only one tab, then just close the app
-    if len(tab_panes.tabs()) == 1:
+    if len(tab_panes.tabs()) == 1 and close_tab_confirm:
         quitApp(force=True)
     elif close_tab_confirm:
         # Remove any tab info from arrays
@@ -1587,10 +1597,12 @@ def createMenuBar():
         # From: https://stackoverflow.com/a/10865170
         recentfilemenu.add_command(label=i, command=lambda i=i: openFile(file_path=i))
 
+    # If there's no recent files, then disable it
     if len(recent_files) == 0:
         state = "disabled"
     else:
         state = "normal"
+
     filemenu.add_cascade(label="Open Recent", menu=recentfilemenu, state=state)
     filemenu.add_command(label="View File", command=viewFile)
     filemenu.add_separator()
