@@ -7,25 +7,13 @@
 """
 Imports
 """
+# Main imports
+# This allows the update to happen at least even if the other imports don't work
 import sys
 from os.path import abspath, join, expanduser
 # from os import getenv     #! DOESN'T SEEM TO WORK IN EXE MODE
-import json
 from random import choice, randint
 from string import ascii_letters, digits
-import tkinter as tk
-from tkinter import font
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
-from tkinter import colorchooser
-from traceback import format_exc, print_exc # For the error messages when in exe form
-from webbrowser import open_new # For opening the help page
-from cryptography.fernet import Fernet  # For encryption features
-# For Markdown preview features
-import tkinterweb
-from markdown import markdown
-from ttkbootstrap import Style
 
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
@@ -57,6 +45,24 @@ elif len(arguments) == 2:
     possible_characters = ascii_letters + digits
     print(("".join([choice(possible_characters) for i in range(randint(15, 45))]), "".join([choice(possible_characters) for i in range(randint(15, 45))]), "".join([choice(possible_characters) for i in range(randint(15, 45))]), Fernet.generate_key().decode()))
     sys.exit(0)
+
+# Other imports
+import json
+import tkinter as tk
+from tkinter import font
+from tkinter import filedialog
+from tkinter import messagebox
+from tkinter import colorchooser
+from traceback import format_exc, print_exc # For the error messages when in exe form
+from webbrowser import open_new # For opening the help page
+from cryptography.fernet import Fernet  # For encryption features
+# For Markdown preview features
+import tkinterweb
+from markdown import markdown
+# Weird import method for ttkbootstrap
+if not debug:
+    sys.path.append(getTrueFilename("ttkbootstrap"))
+import ttkbootstrap as ttk
 
 try:
     settings_path = join(expanduser("~"), ".encryptext", "settings.json")
@@ -438,9 +444,9 @@ Window Settings
 """
 # Create the window and configure the background for theme changes
 if settings["otherSettings"]["theme"] == "light":
-    styles = Style(theme="cosmo")
+    styles = ttk.Style(theme="cosmo")
 else:
-    styles = Style(theme="darkly")
+    styles = ttk.Style(theme="darkly")
 
 # root = tk.Tk()
 root = styles.master
