@@ -7,24 +7,13 @@
 """
 Imports
 """
+# Main imports
+# This allows the update to happen at least even if the other imports don't work
 import sys
 from os.path import abspath, join, expanduser
 # from os import getenv     #! DOESN'T SEEM TO WORK IN EXE MODE
-import json
 from random import choice, randint
 from string import ascii_letters, digits
-import tkinter as tk
-from tkinter import font
-from tkinter import ttk
-from tkinter import filedialog
-from tkinter import messagebox
-from tkinter import colorchooser
-from traceback import format_exc, print_exc # For the error messages when in exe form
-from webbrowser import open_new # For opening the help page
-from cryptography.fernet import Fernet  # For encryption features
-# For Markdown preview features
-import tkinterweb
-from markdown import markdown
 
 # Used for getting files when using one-file mode .exe format
 def getTrueFilename(filename):
@@ -56,6 +45,24 @@ elif len(arguments) == 2:
     possible_characters = ascii_letters + digits
     print(("".join([choice(possible_characters) for i in range(randint(15, 45))]), "".join([choice(possible_characters) for i in range(randint(15, 45))]), "".join([choice(possible_characters) for i in range(randint(15, 45))]), Fernet.generate_key().decode()))
     sys.exit(0)
+
+# Other imports
+import json
+import tkinter as tk
+from tkinter import font
+from tkinter import filedialog
+from tkinter import messagebox
+from tkinter import colorchooser
+from traceback import format_exc, print_exc # For the error messages when in exe form
+from webbrowser import open_new # For opening the help page
+from cryptography.fernet import Fernet  # For encryption features
+# For Markdown preview features
+import tkinterweb
+from markdown import markdown
+# Weird import method for ttkbootstrap
+if not debug:
+    sys.path.append(getTrueFilename("ttkbootstrap"))
+import ttkbootstrap as ttk
 
 try:
     settings_path = join(expanduser("~"), ".encryptext", "settings.json")
@@ -97,15 +104,106 @@ except FileNotFoundError:
     version = "'Encryptext Travel Mode'"
 
 font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
+theme = settings["otherSettings"]["theme"]
 
 """
 Custom Classes
 """
+if theme == "light":
+    bg = "white"
+    text = "black"
+    code_bg = "#f8f8f8"
+else:
+    bg = "black"
+    text = "white"
+    code_bg = "#080808"
+
+css_styles = """body { background-color:""" + bg + """; color:""" + text + """;}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.codehilite .hll { background-color: #ffffcc }
+.codehilite { background: """ + code_bg + """; }
+.codehilite .c { color: #3D7B7B; font-style: italic } /* Comment */
+.codehilite .err { border: 1px solid #FF0000 } /* Error */
+.codehilite .k { color: #008000; font-weight: bold } /* Keyword */
+.codehilite .o { color: #666666 } /* Operator */
+.codehilite .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.codehilite .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.codehilite .cp { color: #9C6500 } /* Comment.Preproc */
+.codehilite .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.codehilite .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.codehilite .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.codehilite .gd { color: #A00000 } /* Generic.Deleted */
+.codehilite .ge { font-style: italic } /* Generic.Emph */
+.codehilite .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.codehilite .gr { color: #E40000 } /* Generic.Error */
+.codehilite .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.codehilite .gi { color: #008400 } /* Generic.Inserted */
+.codehilite .go { color: #717171 } /* Generic.Output */
+.codehilite .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.codehilite .gs { font-weight: bold } /* Generic.Strong */
+.codehilite .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.codehilite .gt { color: #0044DD } /* Generic.Traceback */
+.codehilite .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.codehilite .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.codehilite .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.codehilite .kp { color: #008000 } /* Keyword.Pseudo */
+.codehilite .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.codehilite .kt { color: #B00040 } /* Keyword.Type */
+.codehilite .m { color: #666666 } /* Literal.Number */
+.codehilite .s { color: #BA2121 } /* Literal.String */
+.codehilite .na { color: #687822 } /* Name.Attribute */
+.codehilite .nb { color: #008000 } /* Name.Builtin */
+.codehilite .nc { color: #0000FF; font-weight: bold } /* Name.Class */
+.codehilite .no { color: #880000 } /* Name.Constant */
+.codehilite .nd { color: #AA22FF } /* Name.Decorator */
+.codehilite .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.codehilite .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.codehilite .nf { color: #0000FF } /* Name.Function */
+.codehilite .nl { color: #767600 } /* Name.Label */
+.codehilite .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+.codehilite .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.codehilite .nv { color: #19177C } /* Name.Variable */
+.codehilite .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+.codehilite .w { color: #bbbbbb } /* Text.Whitespace */
+.codehilite .mb { color: #666666 } /* Literal.Number.Bin */
+.codehilite .mf { color: #666666 } /* Literal.Number.Float */
+.codehilite .mh { color: #666666 } /* Literal.Number.Hex */
+.codehilite .mi { color: #666666 } /* Literal.Number.Integer */
+.codehilite .mo { color: #666666 } /* Literal.Number.Oct */
+.codehilite .sa { color: #BA2121 } /* Literal.String.Affix */
+.codehilite .sb { color: #BA2121 } /* Literal.String.Backtick */
+.codehilite .sc { color: #BA2121 } /* Literal.String.Char */
+.codehilite .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.codehilite .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.codehilite .s2 { color: #BA2121 } /* Literal.String.Double */
+.codehilite .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.codehilite .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.codehilite .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.codehilite .sx { color: #008000 } /* Literal.String.Other */
+.codehilite .sr { color: #A45A77 } /* Literal.String.Regex */
+.codehilite .s1 { color: #BA2121 } /* Literal.String.Single */
+.codehilite .ss { color: #19177C } /* Literal.String.Symbol */
+.codehilite .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.codehilite .fm { color: #0000FF } /* Name.Function.Magic */
+.codehilite .vc { color: #19177C } /* Name.Variable.Class */
+.codehilite .vg { color: #19177C } /* Name.Variable.Global */
+.codehilite .vi { color: #19177C } /* Name.Variable.Instance */
+.codehilite .vm { color: #19177C } /* Name.Variable.Magic */
+.codehilite .il { color: #666666 } /* Literal.Number.Integer.Long */"""
+
 # https://stackoverflow.com/a/16375233
 class TextLineNumbers(tk.Canvas):
     def __init__(self, *args, **kwargs):
         tk.Canvas.__init__(self, *args, **kwargs)
         self.textwidget = None
+        if theme == "light":
+            self.configure(bg="#f7f7f7")
+        else:
+            self.configure(bg="#1c1c1c")
 
     def attach(self, text_widget):
         self.textwidget = text_widget
@@ -119,7 +217,10 @@ class TextLineNumbers(tk.Canvas):
             if dline is None: break
             y = dline[1]
             linenum = str(i).split(".")[0]
-            self.create_text(2,y,anchor="nw", text=linenum)
+            if theme == "light":
+                self.create_text(2,y,anchor="nw", text=linenum, fill="#000000")
+            else:
+                self.create_text(2,y,anchor="nw", text=linenum, fill="#ffffff")
             i = self.textwidget.index("%s+1line" % i)
 
 # https://stackoverflow.com/a/16375233
@@ -210,7 +311,7 @@ class PreferenceWindow(tk.Toplevel):
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
 
             # Theme selector
-            self.selected_theme = tk.StringVar(value=settings["otherSettings"]["theme"])
+            self.selected_theme = tk.StringVar(value=theme)
             self.theme_label = WrappedLabel(self.pref_window, text="Theme: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             self.light_theme_val = ttk.Radiobutton(self.theme_label, text="Light", value="light", variable=self.selected_theme)
             self.dark_theme_val = ttk.Radiobutton(self.theme_label, text="Dark", value="dark", variable=self.selected_theme)
@@ -286,12 +387,12 @@ class PreferenceWindow(tk.Toplevel):
         global settings
 
         # Save preferences that have been selected
-        settings["maxRecentFiles"] = self.selected_recent_files.get()
+        settings["maxRecentFiles"] = max(0, min(20, self.selected_recent_files.get()))
         settings["otherSettings"]["fontStyle"] = self.selected_font_style.get()
-        settings["otherSettings"]["fontScaleFactor"] = self.selected_font_sf.get()
+        settings["otherSettings"]["fontScaleFactor"] = max(0.5, min(2, self.selected_font_sf.get()))
         settings["otherSettings"]["theme"] = self.selected_theme.get()
         settings["otherSettings"]["autoSave"] = self.selected_auto_save.get()
-        settings["otherSettings"]["autoSaveInterval"] = self.selected_auto_save_interval_val.get()
+        settings["otherSettings"]["autoSaveInterval"] = max(1, min(600, self.selected_auto_save_interval_val.get()))
         settings["otherSettings"]["language"] = self.language_val.get()
         settings["otherSettings"]["showLineNumbers"] = self.selected_show_line_no.get()
         settings["otherSettings"]["wrapLines"] = self.selected_wrap_line.get()
@@ -338,11 +439,13 @@ class PreviewWindow(tk.Toplevel):
         if current_tab == -1:
             return None
 
-        self.frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
+        text = textboxes[current_tab].get("1.0", tk.END)
+        self.updateFrame(text)
         self.frame.pack(fill="both", expand=True)
 
     def updateFrame(self, text: str) -> None:
-        self.frame.load_html(markdown(text))
+        html_page = f"<html><head><style>{css_styles}</style></head><body>{markdown(text, extensions=['fenced_code', 'codehilite'])}</body></html>"
+        self.frame.load_html(html_page)
 
     def key_bind(self, keys: str, func) -> None:
         self.preview_window.bind(keys, func)
@@ -350,8 +453,14 @@ class PreviewWindow(tk.Toplevel):
 """
 Window Settings
 """
-# Create the window
-root = tk.Tk()
+# Create the window and configure the background for theme changes
+if theme == "light":
+    styles = ttk.Style(theme="cosmo")
+else:
+    styles = ttk.Style(theme="darkly")
+
+# root = tk.Tk()
+root = styles.master
 pref_window = PreferenceWindow(close=True)
 preview_window = PreviewWindow(close=True)
 
@@ -375,16 +484,13 @@ min_font_size = 8
 font_sizes = []
 font_type = []
 
-button_style = ttk.Style()
-button_style.configure("TButton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-notebook_style = ttk.Style()
-notebook_style.configure("TNotebook", tabposition="nw", padding=5)
-notebook_tab_style = ttk.Style()
-notebook_tab_style.configure("TNotebook.Tab", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))), expand=-1)
-radio_button_style = ttk.Style()
-radio_button_style.configure("TRadiobutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-check_button_style = ttk.Style()
-check_button_style.configure("TCheckbutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+# These are just general font styles for all text items
+other_styles = ttk.Style()
+other_styles.configure("TButton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+other_styles.configure("TNotebook", tabposition="nw", padding=2)
+other_styles.configure("TNotebook.Tab", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))), expand=-1)
+other_styles.configure("TRadiobutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
+other_styles.configure("TCheckbutton", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
 recent_files = settings["recentFilePaths"]
 
@@ -467,7 +573,7 @@ def updateTags():
 
     return formatted_tags
 
-def quitApp(Event=None):
+def quitApp(Event=None, force=False):
     global settings
 
     current_tab = getCurrentTab()
@@ -493,9 +599,10 @@ def quitApp(Event=None):
 
     # Check if any of the tabs are not saved yet
     quit_confirm = True
-    for save_status in saved:
-        if save_status == False:
-            quit_confirm = False
+    if not force:
+        for save_status in saved:
+            if save_status == False:
+                quit_confirm = False
 
     # If there's one that's not empty, then show warning
     if not quit_confirm:
@@ -563,7 +670,7 @@ def openFile(Event=None, current=False, file_path=None):
             file_name = file_save_locations[current_tab].split("/")[-1]
 
             # Set the title of the window to the file name
-            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=f" {file_name} ")
+            tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=f"{file_name} ")
 
             # Set the current textbox to be writable
             textboxes[current_tab].config(state=tk.NORMAL)
@@ -756,7 +863,7 @@ def newFile(Event=None):
         current_versions[current_tab] = 1
         setSaveStatus(True, current_tab)
 
-        tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text=" Untitled ")
+        tab_panes.tab(tab_panes.tabs()[getCurrentTab()], text="Untitled ")
 
         updatePreview()
 
@@ -932,15 +1039,26 @@ def trackChanges(Event=None, override=False):
     if current_tab == -1:
         return None
 
+    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Shift_L", "Shift_R", "Left", "Up", "Down", "Right", "Caps_Lock", "Escape", "Win_L", "Win_R"]
+    key_update = ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]
+
+    # This forces an additional update to the key event
+    # Necessary for updating the preview
+    if not override and (Event.keysym not in key_ignore and Event.time > 1):
+        if Event.keysym in key_update:
+            textboxes[current_tab].event_generate("<Key>", when="tail", time=1)
+        else:
+            textboxes[current_tab].event_generate("<Key>", when="tail", time=0)
+        return None
+
     # Set save status to False if it's been changed
-    key_ignore = ["Control_L", "Control_R", "Alt_L", "Alt_R", "Shift_L", "Shift_R"]
     try:
         if (Event.state <= 1 and Event.keysym not in key_ignore):
             setSaveStatus(False, current_tab)
     except: pass
 
     try:
-        if (Event.keysym in ["space", "Return", "quoteleft", "asciitilde", "exclam", "at", "numbersign", "dollar", "percent", "asciicircum", "ampersand", "asterisk", "parenleft", "parenright", "underscore", "plus", "braceleft", "braceright", "bar", "colon", "less", "greater", "question", "minus", "equal", "bracketleft", "bracketright", "backslash", "semicolon", "quoteright", "comma", "period", "slash", "Tab"]) or (override):
+        if (Event.time == 1) or (override):
             global file_histories, current_versions
 
             # Check if the first version is empty
@@ -1262,7 +1380,10 @@ def addNewTab(Event=None):
 
     if settings["otherSettings"]["highlightActiveLine"] == True:
         # Adapted from https://stackoverflow.com/a/9720858
-        textboxes[-1].tag_configure("current_line", background="#e9e9e9")
+        if theme == "light":
+            textboxes[-1].tag_configure("current_line", background="#e9e9e9")
+        else:
+            textboxes[-1].tag_configure("current_line", background="#262626")
         textboxes[-1].tag_raise("sel", "current_line")
 
     # Create scroll bar and link it
@@ -1285,7 +1406,7 @@ def addNewTab(Event=None):
     if settings["otherSettings"]["wrapLines"] == False:
         scroll_bars[-1][1].pack(side=tk.BOTTOM, fill=tk.X)
 
-    tab_panes.add(frames[-1], text=" Untitled ")
+    tab_panes.add(frames[-1], text="Untitled ")
 
     # Allow right-click menu to show up
     textboxes[-1].bind("<Button-3>", showQuickMenu)
@@ -1323,7 +1444,7 @@ def closeCurrentTab(Event=None):
     # If their settings are configured to close all tabs
     if settings["otherSettings"]["closeAllTabs"] == True:
         quitApp()
-        return None
+        return "break"
 
     close_tab_confirm = True
     if saved[current_tab] == False:
@@ -1332,7 +1453,10 @@ def closeCurrentTab(Event=None):
     if not close_tab_confirm:
         close_tab_confirm = messagebox.askyesno("Close Tab", "Close current tab?\n\nAny unsaved changes will be lost.")
 
-    if close_tab_confirm:
+    # If there's only one tab, then just close the app
+    if len(tab_panes.tabs()) == 1 and close_tab_confirm:
+        quitApp(force=True)
+    elif close_tab_confirm:
         # Remove any tab info from arrays
         tab_panes.forget(current_tab)
         textboxes.pop(current_tab)
@@ -1376,10 +1500,10 @@ def setSaveStatus(save: bool, current_tab: int) -> None:
     tab_title = tab_panes.tab(cur_tab_id)["text"]
     if not save:
         if "*" not in tab_title:
-            tab_panes.tab(cur_tab_id, text=f"{tab_panes.tab(cur_tab_id)['text']}*")
+            tab_panes.tab(cur_tab_id, text=f"{''.join(tab_panes.tab(cur_tab_id)['text'].split(' ')[0:-1])}* ")
     else:
         if "*" in tab_title:
-            tab_panes.tab(cur_tab_id, text=tab_panes.tab(cur_tab_id)['text'].split("*")[0])
+            tab_panes.tab(cur_tab_id, text=f"{tab_panes.tab(cur_tab_id)['text'].split('*')[0]} ")
 
 def captureSpecialKeys(Event=None):
     cur_key = Event.keysym
@@ -1490,10 +1614,12 @@ def createMenuBar():
         # From: https://stackoverflow.com/a/10865170
         recentfilemenu.add_command(label=i, command=lambda i=i: openFile(file_path=i))
 
+    # If there's no recent files, then disable it
     if len(recent_files) == 0:
         state = "disabled"
     else:
         state = "normal"
+
     filemenu.add_cascade(label="Open Recent", menu=recentfilemenu, state=state)
     filemenu.add_command(label="View File", command=viewFile)
     filemenu.add_separator()

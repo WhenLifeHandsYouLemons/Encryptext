@@ -1,14 +1,14 @@
 #!/usr/bin/python'
 
-from os import rename, path, remove
+from os import rename, path
 from shutil import rmtree, copy
 import hashlib
 import PyInstaller.__main__
 
-version = "1.9.2"
+version = "1.9.3"
 testing = False
 
-def update_build_number():
+def update_build_number() -> str:
     with open("builds/build_number.txt", "r") as file:
         build_number = int(file.read().strip())
     build_number += 1
@@ -47,6 +47,14 @@ def modifyInstallerFile(add: bool) -> None:
         file.write(installer_file)
         file.truncate()
 
+def changeDebug(file_name: str, debug: bool) -> None:
+    with open(f".venv/Lib/site-packages/ttkbootstrap/{file_name}", "r+") as file:
+        lines = file.read()
+        lines = f"debug = {debug}".join(lines.split(f"debug = {not debug}"))
+        file.seek(0)
+        file.write(lines)
+        file.truncate()
+
 # Open the key.txt file and read in the key
 with open("Original Files/key.txt", "r") as file:
     key = file.read().strip()
@@ -56,6 +64,9 @@ hash_str = computeHash(key)
 # Add hash and version
 modifyInstallerFile(True)
 
+# Open the ttkbootstrap's files and change debug to False
+changeDebug("style.py", False)
+
 try:
     # Creates an executable file
     PyInstaller.__main__.run([
@@ -63,13 +74,17 @@ try:
         '--onefile',
         '--clean',
         '--log-level',
-        'ERROR',
+        'INFO',
         '--icon',
         'app_icon.ico',
         '--add-data',
         'app_icon.ico;.',
         '--add-data',
         'Encryptext.pyw;.',
+        '--add-data',
+        '.venv/Lib/site-packages/ttkbootstrap;ttkbootstrap',
+        '--add-data',
+        '.venv/Lib/site-packages/tkinter;tkinter',
         "--collect-all",
         "tkinterweb",
         "--collect-all",
@@ -83,10 +98,12 @@ except Exception as e:
     # Remove hash and version
     modifyInstallerFile(False)
 
+    # Open the ttkbootstrap's files and change debug to True
+    changeDebug("style.py", True)
+
     # Remove pyinstaller folders and files
     rmtree("dist")
     rmtree("build")
-    remove("encryptext_installer.spec")
 
     exit()
 
@@ -101,7 +118,9 @@ else:
     version = '.'.join(version.split('.')[0:-1])
     rename(path.join("dist", "encryptext_installer.exe"), f"builds/release/encryptext_installer_v{version}_64bit.exe")
 
+# Open the ttkbootstrap's files and change debug to True
+changeDebug("style.py", True)
+
 # Remove pyinstaller folders and files
 rmtree("dist")
 rmtree("build")
-remove("encryptext_installer.spec")
