@@ -251,7 +251,7 @@ if keep_settings == "y":
                 "closeAllTabs": file["otherSettings"]["closeAllTabs"]
             }
         }
-    except: pass
+    except Exception as e: print(e)
 
 makedirs(dir_path, exist_ok=True)
 

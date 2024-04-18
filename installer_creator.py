@@ -5,8 +5,8 @@ from shutil import rmtree, copy
 import hashlib
 import PyInstaller.__main__
 
-version = "1.9.3"
-testing = False
+version = "1.9.4"
+testing = True
 
 def update_build_number() -> str:
     with open("builds/build_number.txt", "r") as file:
@@ -82,9 +82,9 @@ try:
         '--add-data',
         'Encryptext.pyw;.',
         '--add-data',
-        '.venv/Lib/site-packages/ttkbootstrap;ttkbootstrap',
+        'to-package/ttkbootstrap;ttkbootstrap',
         '--add-data',
-        '.venv/Lib/site-packages/tkinter;tkinter',
+        'to-package/tkinter;tkinter',
         "--collect-all",
         "tkinterweb",
         "--collect-all",
