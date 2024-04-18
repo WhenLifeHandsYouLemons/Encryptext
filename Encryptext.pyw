@@ -104,11 +104,12 @@ except FileNotFoundError:
     version = "'Encryptext Travel Mode'"
 
 font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
+theme = settings["otherSettings"]["theme"]
 
 """
 Custom Classes
 """
-if settings["otherSettings"]["theme"] == "light":
+if theme == "light":
     bg = "white"
     text = "black"
     code_bg = "#f8f8f8"
@@ -199,7 +200,7 @@ class TextLineNumbers(tk.Canvas):
     def __init__(self, *args, **kwargs):
         tk.Canvas.__init__(self, *args, **kwargs)
         self.textwidget = None
-        if settings["otherSettings"]["theme"] == "light":
+        if theme == "light":
             self.configure(bg="#f7f7f7")
         else:
             self.configure(bg="#1c1c1c")
@@ -216,7 +217,7 @@ class TextLineNumbers(tk.Canvas):
             if dline is None: break
             y = dline[1]
             linenum = str(i).split(".")[0]
-            if settings["otherSettings"]["theme"] == "light":
+            if theme == "light":
                 self.create_text(2,y,anchor="nw", text=linenum, fill="#000000")
             else:
                 self.create_text(2,y,anchor="nw", text=linenum, fill="#ffffff")
@@ -310,7 +311,7 @@ class PreferenceWindow(tk.Toplevel):
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
 
             # Theme selector
-            self.selected_theme = tk.StringVar(value=settings["otherSettings"]["theme"])
+            self.selected_theme = tk.StringVar(value=theme)
             self.theme_label = WrappedLabel(self.pref_window, text="Theme: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             self.light_theme_val = ttk.Radiobutton(self.theme_label, text="Light", value="light", variable=self.selected_theme)
             self.dark_theme_val = ttk.Radiobutton(self.theme_label, text="Dark", value="dark", variable=self.selected_theme)
@@ -386,12 +387,12 @@ class PreferenceWindow(tk.Toplevel):
         global settings
 
         # Save preferences that have been selected
-        settings["maxRecentFiles"] = self.selected_recent_files.get()
+        settings["maxRecentFiles"] = max(0, min(20, self.selected_recent_files.get()))
         settings["otherSettings"]["fontStyle"] = self.selected_font_style.get()
-        settings["otherSettings"]["fontScaleFactor"] = self.selected_font_sf.get()
+        settings["otherSettings"]["fontScaleFactor"] = max(0.5, min(2, self.selected_font_sf.get()))
         settings["otherSettings"]["theme"] = self.selected_theme.get()
         settings["otherSettings"]["autoSave"] = self.selected_auto_save.get()
-        settings["otherSettings"]["autoSaveInterval"] = self.selected_auto_save_interval_val.get()
+        settings["otherSettings"]["autoSaveInterval"] = max(1, min(600, self.selected_auto_save_interval_val.get()))
         settings["otherSettings"]["language"] = self.language_val.get()
         settings["otherSettings"]["showLineNumbers"] = self.selected_show_line_no.get()
         settings["otherSettings"]["wrapLines"] = self.selected_wrap_line.get()
@@ -438,7 +439,8 @@ class PreviewWindow(tk.Toplevel):
         if current_tab == -1:
             return None
 
-        self.frame.load_html(markdown(textboxes[current_tab].get("1.0", tk.END)))
+        text = textboxes[current_tab].get("1.0", tk.END)
+        self.updateFrame(text)
         self.frame.pack(fill="both", expand=True)
 
     def updateFrame(self, text: str) -> None:
@@ -452,7 +454,7 @@ class PreviewWindow(tk.Toplevel):
 Window Settings
 """
 # Create the window and configure the background for theme changes
-if settings["otherSettings"]["theme"] == "light":
+if theme == "light":
     styles = ttk.Style(theme="cosmo")
 else:
     styles = ttk.Style(theme="darkly")
@@ -1378,7 +1380,7 @@ def addNewTab(Event=None):
 
     if settings["otherSettings"]["highlightActiveLine"] == True:
         # Adapted from https://stackoverflow.com/a/9720858
-        if settings["otherSettings"]["theme"] == "light":
+        if theme == "light":
             textboxes[-1].tag_configure("current_line", background="#e9e9e9")
         else:
             textboxes[-1].tag_configure("current_line", background="#262626")
