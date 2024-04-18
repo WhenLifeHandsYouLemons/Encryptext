@@ -108,14 +108,23 @@ font_scale_factor = settings["otherSettings"]["fontScaleFactor"]
 """
 Custom Classes
 """
-css_styles = """body { background-color: white; }
+if settings["otherSettings"]["theme"] == "light":
+    bg = "white"
+    text = "black"
+    code_bg = "#f8f8f8"
+else:
+    bg = "black"
+    text = "white"
+    code_bg = "#080808"
+
+css_styles = """body { background-color:""" + bg + """; color:""" + text + """;}
 pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
 span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
 td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
 span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
 .codehilite .hll { background-color: #ffffcc }
-.codehilite { background: #f8f8f8; }
+.codehilite { background: """ + code_bg + """; }
 .codehilite .c { color: #3D7B7B; font-style: italic } /* Comment */
 .codehilite .err { border: 1px solid #FF0000 } /* Error */
 .codehilite .k { color: #008000; font-weight: bold } /* Keyword */
