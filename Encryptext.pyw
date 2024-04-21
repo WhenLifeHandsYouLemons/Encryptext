@@ -56,13 +56,18 @@ from tkinter import colorchooser
 from traceback import format_exc, print_exc # For the error messages when in exe form
 from webbrowser import open_new # For opening the help page
 from cryptography.fernet import Fernet  # For encryption features
-# For Markdown preview features
-import tkinterweb
-from markdown import markdown
-# Weird import method for ttkbootstrap
+
+# Weird import method for ttkbootstrap and tkinterweb
 if not debug:
     sys.path.append(getTrueFilename("ttkbootstrap"))
 import ttkbootstrap as ttk
+
+# For Markdown preview features
+from markdown import markdown
+if not debug:
+    sys.path.pop()
+    sys.path.append(getTrueFilename("tkinterweb"))
+import tkinterweb
 
 try:
     with open("settings.json", "r", encoding="utf-8") as file:
@@ -82,7 +87,10 @@ try:
                 settings[key] = True
 
     version = f"{'.'.join(version.split('.')[0:-1])} (build {version.split('.')[-1]})"
-except FileNotFoundError:
+except FileNotFoundError as e:
+    messagebox.showerror("Error Opening File", format_exc())
+    print_exc()
+
     settings = {
         "recentFilePaths": [],
         "maxRecentFiles": 0,

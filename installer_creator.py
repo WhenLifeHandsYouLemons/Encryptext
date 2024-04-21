@@ -115,7 +115,7 @@ changeDebug(False)
 try:
     # Creates an executable file
     PyInstaller.__main__.run([
-        'encryptext_installer_tk.py',
+        'encryptext_installer.py',
         '--name',
         'encryptext_installer',
         '--onefile',
@@ -133,11 +133,11 @@ try:
         '--add-data',
         'packages/tkinter;tkinter',
         '--add-data',
+        'packages/tkinterweb;tkinterweb',
+        '--add-data',
         'images;images',
         "--collect-all",
         "tkinterweb",
-        "--collect-all",
-        "alive_progress",
         "--collect-all",
         "grapheme"
     ])
