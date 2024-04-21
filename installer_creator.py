@@ -1,5 +1,9 @@
 #!/usr/bin/python'
 
+# Created by Sooraj S
+# https://encryptext.sooraj.dev
+# Free for everyone. Forever.
+
 from os import rename, path
 from shutil import rmtree, copy
 import hashlib
@@ -12,6 +16,13 @@ testing = True
 os_type = platform.system()
 
 def update_build_number() -> str:
+    """
+    Updates the build number by reading the current build number from a file,
+    incrementing it by 1, and then writing the updated build number back to the file.
+
+    Returns:
+        str: The updated build number.
+    """
     file_path = "builds/build_number.txt"
 
     with open(file_path, "r") as file:
@@ -27,14 +38,31 @@ def update_build_number() -> str:
 build_number = update_build_number()
 version = f"{version}.{build_number}"
 
-# Compute hash of the input string
 def computeHash(input_string: str) -> str:
+    """
+    Computes the SHA-256 hash of the input string.
+
+    Args:
+        input_string (str): The string to compute the hash for.
+
+    Returns:
+        str: The hexadecimal representation of the computed hash.
+    """
     hash_object = hashlib.sha256()
     hash_object.update(input_string.encode('utf-8'))
 
     return hash_object.hexdigest()
 
 def modifyInstallerFile(add: bool) -> None:
+    """
+    Modifies the content of the 'encryptext_installer.py' file by adding or removing computed hash and version number.
+
+    Args:
+        add (bool): If True, add the computed hash and version number. If False, remove the computed hash and version number.
+
+    Returns:
+        None
+    """
     with open("encryptext_installer.py", "r+") as file:
         installer_file = file.read()
 
@@ -56,7 +84,16 @@ def modifyInstallerFile(add: bool) -> None:
         file.truncate()
 
 def changeDebug(debug: bool) -> None:
-    with open(f"to-package/ttkbootstrap/style.py", "r+") as file:
+    """
+    Change the debug mode in the style.py file.
+
+    Args:
+        debug (bool): The new value for the debug mode.
+
+    Returns:
+        None
+    """
+    with open(f"packages/ttkbootstrap/style.py", "r+") as file:
         lines = file.read()
         lines = f"debug = {debug}".join(lines.split(f"debug = {not debug}"))
         file.seek(0)
@@ -86,15 +123,17 @@ try:
         '--log-level',
         'INFO',
         '--icon',
-        'app_icon.ico',
+        'images/app_icon.ico',
         '--add-data',
-        'app_icon.ico;.',
+        'images/app_icon.ico;.',
         '--add-data',
         'Encryptext.pyw;.',
         '--add-data',
         'packages/ttkbootstrap;ttkbootstrap',
         '--add-data',
         'packages/tkinter;tkinter',
+        '--add-data',
+        'images;images',
         "--collect-all",
         "tkinterweb",
         "--collect-all",
@@ -131,11 +170,11 @@ else:
     end_file_type = ""
 
 if testing:
-    rename(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/testing/{os_type.lower()}/encryptext_installer_v{version}_64bit.{end_file_type}")
+    rename(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/{os_type.lower()}/testing/encryptext_installer_v{version}_64bit.{end_file_type}")
 else:
-    copy(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/testing/{os_type.lower()}/encryptext_installer_v{version}_64bit_release.{end_file_type}")
+    copy(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/{os_type.lower()}/testing/encryptext_installer_v{version}_64bit_release.{end_file_type}")
     version = '.'.join(version.split('.')[0:-1])
-    rename(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/release/{os_type.lower()}/encryptext_installer_v{version}_64bit.{end_file_type}")
+    rename(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/{os_type.lower()}/release/encryptext_installer_v{version}_64bit.{end_file_type}")
 
 # Open the ttkbootstrap's files and change debug to True
 changeDebug(True)

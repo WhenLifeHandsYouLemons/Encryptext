@@ -20,6 +20,16 @@ import platform
 
 # Used for getting files when using one-file mode
 def getTrueFilename(filename):
+    """
+    Returns the true filename by joining the base path with the given filename.
+
+    Parameters:
+    filename (str): The name of the file.
+
+    Returns:
+    str: The true filename.
+
+    """
     try:
         base = sys._MEIPASS
     except Exception:
@@ -53,6 +63,18 @@ def swapPage(cur_page: int, next_page: int) -> None:
     pages[next_page] = createPage(next_page)
 
 def createPage(page_no: int) -> tk.Frame:
+    """
+    Creates a page for the Encryptext Setup Wizard.
+
+    Parameters:
+        page_no (int): The page number to create.
+
+    Returns:
+        tk.Frame: The created page as a Tkinter Frame.
+
+    Raises:
+        None
+    """
     page = tk.Frame(root)
 
     # Splash page
@@ -391,6 +413,7 @@ agreement_accept = tk.BooleanVar(root, False)
 completed = False
 update = False
 
+
 def changeInstallPath(path_str: str = None) -> None:
     """
     Changes the installation path for the Encryptext application.
@@ -492,6 +515,16 @@ def checkInstallCompletion(bar: ttk.Progressbar, prev_val: int = 0) -> None:
         bar.after(1000, lambda: checkInstallCompletion(bar, prev_val))
 
 def installApp(bar: ttk.Progressbar) -> None:
+    """
+    Installs the Encryptext application by modifying the necessary files, creating settings, compiling the application,
+    and creating shortcuts (if applicable).
+
+    Args:
+        bar (ttk.Progressbar): The progress bar widget to update during the installation process.
+
+    Returns:
+        None
+    """
     def addToFile(file: str, split_str: str, join_str: str) -> str:
         """
         Adds the key to the file by splitting the file string using the split_str,
