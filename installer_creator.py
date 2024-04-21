@@ -78,7 +78,9 @@ changeDebug(False)
 try:
     # Creates an executable file
     PyInstaller.__main__.run([
-        'encryptext_installer.py',
+        'encryptext_installer_tk.py',
+        '--name',
+        'encryptext_installer',
         '--onefile',
         '--clean',
         '--log-level',

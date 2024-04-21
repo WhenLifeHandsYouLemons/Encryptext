@@ -253,7 +253,7 @@ if keep_settings == "y":
             "recentFilePaths": file["recentFilePaths"],
             "maxRecentFiles": file["maxRecentFiles"],
             "otherSettings": {
-                "theme": file["theme"],
+                "theme": file["otherSettings"]["theme"],
                 "fontStyle": file["otherSettings"]["fontStyle"],
                 "fontScaleFactor": file["otherSettings"]["fontScaleFactor"],
                 "language": file["otherSettings"]["language"],

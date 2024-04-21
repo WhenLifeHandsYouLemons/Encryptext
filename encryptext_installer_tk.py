@@ -1,12 +1,32 @@
+#!/usr/bin/python'
+
+# Created by Sooraj S
+# https://encryptext.sooraj.dev
+# Free for everyone. Forever.
+
 # Imports
-from os import path, environ
+import json
+from os import listdir, makedirs, path, environ, remove, rename, rmdir
+from random import choice, randint
+from shutil import rmtree
+from string import ascii_letters, digits
+import sys
+from subprocess import PIPE, run
 import tkinter as tk
-from tkinter import filedialog
-from tkinter import ttk
+from tkinter import filedialog, ttk
+from cryptography.fernet import Fernet as F
 from PIL import Image, ImageTk
 import platform
 
-version = "1.9.4"
+# Used for getting files when using one-file mode
+def getTrueFilename(filename):
+    try:
+        base = sys._MEIPASS
+    except Exception:
+        base = path.abspath(".")
+    return path.join(base, filename)
+
+version = "INSERT VERSION NUMBER HERE"
 
 # Main window configurations
 root = tk.Tk()
@@ -310,11 +330,13 @@ def createPage(page_no: int) -> tk.Frame:
     page.pack(fill="both", side="top", expand=True)
     return page
 
+
 # Create multiple pages
 pages = []
 for i in range(10):  # Change this to the number of pages you want
     page = tk.Frame(root)
     pages.append(page)
+
 
 # Widget information here
 bar_height = 50
@@ -335,21 +357,24 @@ style = ttk.Style()
 style.configure("TButton", background="#CCC", padding=3)
 style.configure("TLabel", background="#FFF", padding=(10, 5))
 style.configure("A.TButton", background="#FFF")
-style.configure("A.TLabel", background="#FFF", padding=(10, 5), wraplength=width-final_splash_size[0]-20)
+style.configure("A.TLabel", background="#FFF", padding=(10, 5), wraplength=width-final_splash_size[0]-25)
 style.configure("B.TLabel", background="#FFF", padding=(10, 5), wraplength=width-150)
 style.configure("TRadiobutton", background="#FFF", padding=(25, 5), font=("Arial", 11))
 style.configure("TCheckbutton", background="#FFF", padding=(25, 5), font=("Arial", 11))
 
+
 # Installer info
+home_dir = path.expanduser("~")
+
 user_type = tk.StringVar(root, "current")
 install_path = tk.StringVar(root, "")
-cur_user = path.expanduser("~").split("\\")[-1]
+cur_user = home_dir.split("\\")[-1]
 
 desktop_shortcut = tk.BooleanVar(root, True)
 start_menu_folder = tk.BooleanVar(root, False)
 
 start_menu_name = tk.StringVar(root, "Encryptext")
-start_menu_path = path.join(path.expanduser("~"), "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs")
+start_menu_path = path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs")
 
 license_text = """MIT License
 
@@ -364,6 +389,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 agreement_accept = tk.BooleanVar(root, False)
 
 completed = False
+update = False
 
 def changeInstallPath(path_str: str = None) -> None:
     """
@@ -388,7 +414,7 @@ def changeInstallPath(path_str: str = None) -> None:
                 path_str = path.join(environ["ProgramW6432"], "Encryptext")
         elif platform.system() == "Darwin":
             if user_type.get() == "current":
-                path_str = path.join(path.expanduser("~"), "Applications", "Encryptext")
+                path_str = path.join(home_dir, "Applications", "Encryptext")
             else:
                 path_str = path.join("Applications", "Encryptext")
         else:
@@ -438,21 +464,287 @@ Additional tasks:
     {insert2}
     Create Desktop shortcut: {'Yes' if desktop_shortcut.get() else 'No'}"""
 
-def checkInstallCompletion(bar):
-    #TODO: Change what happens in here
-    print(bar["value"])
+def checkInstallCompletion(bar: ttk.Progressbar, prev_val: int = 0) -> None:
+    """
+    Check the completion status of the installation process and update the progress bar.
+
+    Args:
+        bar (ttk.Progressbar): The progress bar widget to update.
+        prev_val (int, optional): The previous value of the progress bar. Defaults to 0.
+    """
+    # Load output file
+    with open(path.join(install_path, "installer_output.log"), 'r') as output_file:
+        text = output_file.readlines()
+
+    try:
+        # This is just a rough approximation of how long the process might take
+        # As pyinstaller doesn't provide ETAs for compilation, we have to guess
+        # based on the output text that we store in a log file and then delete
+        # once it finishes installing.
+        val = int(int(text[-1].split(": ")[0].split(" ")[0]) / 117000) * 100
+    except:
+        val = prev_val
+    bar["value"] = val
+
     if completed:
         swapPage(7, 8)
     else:
-        bar.after(1000, lambda: checkInstallCompletion(bar))
+        bar.after(1000, lambda: checkInstallCompletion(bar, prev_val))
 
-def installApp(bar):
-    global completed
+def installApp(bar: ttk.Progressbar) -> None:
+    def addToFile(file: str, split_str: str, join_str: str) -> str:
+        """
+        Adds the key to the file by splitting the file string using the split_str,
+        joining the split parts using the join_str, and returning the modified file string.
+
+        Args:
+            file (str): The file string to modify.
+            split_str (str): The string used to split the file string.
+            join_str (str): The string used to join the split parts.
+
+        Returns:
+            str: The modified file string.
+        """
+        file = file.split(split_str)
+        file = join_str.join(file)
+
+        return file
+
+    global completed, update
     bar.after(1000, lambda: checkInstallCompletion(bar))
 
-    #TODO: Add some installation stuff here
-    print("Installing...")
+    # Open the Encryptext.pyw file and read it into a variable
+    with open(getTrueFilename("Encryptext.pyw"), "r", encoding="utf8") as file:
+        text = file.read()
+
+    # Add version number to the file
+    file = text.split("VERSION NUMBER HERE")
+    text = version.join(file)
+
+    # Change debug mode to False if it's True
+    try:
+        file = text.split("debug = True")
+        text = "debug = False".join(file)
+    except: pass
+
+    # Adds computed hash to file
+    hash_str = "INSERT COMPUTED HASH HERE"
+    file = text.split("HASH STRING HERE")
+    text = hash_str.join(file)
+
+    os_type = platform.system()
+
+    if os_type == "Windows":
+        end_file_type = "exe"
+    elif os_type == "Darwin":
+        end_file_type = ""
+    elif os_type == "Linux":
+        end_file_type = "bin"
+    else:
+        end_file_type = ""
+
+    if update:
+        # Communicate to old program
+        return_attributes = ""
+        try:
+            exec_files = [f for f in listdir(install_path) if f.endswith(f'.{end_file_type}')]
+            return_attributes = run([f"{path.join(install_path, exec_files[0])}", hash_str], stdout=PIPE)
+            return_attributes = return_attributes.stdout.decode().split("(")[-1].split(")")[0].split(", ")
+        except IndexError:
+            raise Exception("Encryptext hasn't been installed before! Please install the program before trying to update.")
+        except:
+            raise Exception("Something went wrong! Please try again or file a crash report on GitHub.")
+
+        # Encryption key
+        key = str(return_attributes[3].split("'")[1])
+
+        # For separators
+        format_item_separator = str(return_attributes[0].split("'")[1])
+        format_separator = str(return_attributes[1].split("'")[1])
+        format_string = str(return_attributes[2].split("'")[1])
+    else:
+        # Create a key and remove the b'' from the string
+        key = F.generate_key().decode()
+
+        # For separators
+        possible_characters = ascii_letters + digits
+
+        # Create a format item separator string
+        format_item_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+        # Create a format separator string
+        format_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+        # Create a format string
+        format_string = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+
+    # Add the strings to the file
+    text = addToFile(file, "ENCRYPTION KEY HERE", key)
+    text = addToFile(text, "FORMAT ITEM SEPARATOR HERE", format_item_separator)
+    text = addToFile(text, "FORMAT SEPARATOR HERE", format_separator)
+    text = addToFile(text, "FORMAT STRING HERE", format_string)
+
+    settings_file_path = path.join(install_path, "settings.json")
+
+    data = {
+        "recentFilePaths": [],
+        "maxRecentFiles": 5,
+        "otherSettings": {
+            "theme": "light",
+            "fontStyle": "Arial",
+            "fontScaleFactor": 1,
+            "language": "en_US",
+            "autoSave": False,
+            "autoSaveInterval": 15,
+            "showLineNumbers": False,
+            "wrapLines": True,
+            "highlightActiveLine": False,
+            "closeAllTabs": False
+        }
+    }
+
+    # Otherwise the values will already be the default ones
+    try:
+        with open(settings_file_path, "r") as file:
+            file = json.load(file)
+
+        data = {
+            "recentFilePaths": file["recentFilePaths"],
+            "maxRecentFiles": file["maxRecentFiles"],
+            "otherSettings": {
+                "theme": file["otherSettings"]["theme"],
+                "fontStyle": file["otherSettings"]["fontStyle"],
+                "fontScaleFactor": file["otherSettings"]["fontScaleFactor"],
+                "language": file["otherSettings"]["language"],
+                "autoSave": file["otherSettings"]["autoSave"],
+                "autoSaveInterval": file["otherSettings"]["autoSaveInterval"],
+                "showLineNumbers": file["otherSettings"]["showLineNumbers"],
+                "wrapLines": file["otherSettings"]["wrapLines"],
+                "highlightActiveLine": file["otherSettings"]["highlightActiveLine"],
+                "closeAllTabs": file["otherSettings"]["closeAllTabs"]
+            }
+        }
+    except: pass
+
+    makedirs(install_path, exist_ok=True)
+
+    # Write JSON data
+    with open(settings_file_path, 'w') as file:
+        json.dump(data, file)
+
+    # Removes the program file from any previous installations to not cause issues
+    # This happens right before any files are going to be written to disk
+    try:
+        remove(path.join(install_path, f"encryptext_v{version}.pyw"))
+    except: pass
+
+    # Write the file back to the Encryptext.py file
+    with open(path.join(install_path, f"encryptext_v{version}.pyw"), "w", encoding="utf8") as file:
+        file.write(text)
+
+    # Removes the pyinstaller files from any previous installations to not cause issues
+    # This happens right before any files are going to be written to disk
+    try:
+        rmdir(path.join(install_path, "dist"))
+        rmdir(path.join(install_path, "build"))
+    except: pass
+
+    # Compile the application
+    file_path = path.join(install_path, f"encryptext_v{version}.pyw")
+    icon_path = getTrueFilename("app_icon.ico")
+    # Fix for tkinterweb not working
+    # https://github.com/pyinstaller/pyinstaller/issues/6658#issuecomment-1062817361
+    subproc_env = environ.copy()
+    subproc_env.pop('TCL_LIBRARY', None)
+    subproc_env.pop('TK_LIBRARY', None)
+
+    # https://stackoverflow.com/a/72523249
+    # https://stackoverflow.com/a/13790741
+    # https://stackoverflow.com/a/8529412
+    command = ["pyinstaller",
+                "--onefile",
+                "--clean",
+                "--windowed",
+                "--log-level",
+                "DEBUG",
+                "--icon",
+                icon_path,
+                "--add-data",
+                f"{icon_path};.",
+                "--add-data",
+                f"{getTrueFilename('ttkbootstrap')};ttkbootstrap",
+                "--add-data",
+                f"{getTrueFilename('tkinter')};tkinter",
+                "--name",
+                "encryptext",
+                "--collect-all",
+                "tkinterweb",
+                "--exclude-module",
+                "pywin32",
+                "--exclude-module",
+                "Pillow",
+                file_path
+    ]
+    # Redirect both stdout and stderr to /dev/null or NUL depending on the platform
+    with open(path.join(install_path, "installer_output.log"), 'w') as output_file:
+        run(command,
+            shell=True,
+            env=subproc_env,
+            stdout=output_file,
+            stderr=output_file,
+            cwd=install_path)
+
+    # Remove old version if it's the same version number before moving new one out
+    try:
+        remove(path.join(install_path, f"encryptext_v{version}.{end_file_type}"))
+    except: pass
+
+    # Moves the exec out of the dist folder
+    rename(path.join(install_path, "dist", f"encryptext.{end_file_type}"), path.join(install_path, f"encryptext_v{version}.{end_file_type}"))
+
+    # Create desktop shortcut for Windows
+    if os_type == "Windows":
+        if desktop_shortcut.get():
+            # https://stackoverflow.com/a/69597224
+            try:
+                from win32com.client import Dispatch
+
+                shortcut_path = path.join(home_dir, "Desktop", f"Encryptext_v{version}.lnk")
+                target_path = path.join(install_path, f"encryptext_v{version}.{end_file_type}")
+
+                shell = Dispatch('WScript.Shell')
+                shortcut = shell.CreateShortCut(shortcut_path)
+                shortcut.Targetpath = target_path
+                shortcut.save()
+            except:
+                print(f"Couldn't create Desktop shortcut!")
+
+        if start_menu_folder.get():
+            # Create Start Menu shortcut for Windows
+            try:
+                # Create Start Menu folder for Encryptext
+                makedirs(path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext"), exist_ok=True)
+
+                shortcut_path = path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext", f"Encryptext {version}.lnk")
+                target_path = path.join(install_path, f"encryptext_v{version}.{end_file_type}")
+
+                shell = Dispatch('WScript.Shell')
+                shortcut = shell.CreateShortCut(shortcut_path)
+                shortcut.Targetpath = target_path
+                shortcut.save()
+            except:
+                print("Couldn't create Start Menu shortcut!")
+    elif os_type == "Linux":
+        pass
+    elif os_type == "Darwin":
+        pass
+
+    # Removes the files from pyinstaller
+    rmdir(path.join(install_path, "dist"))
+    rmtree(path.join(install_path, "build"))
+    remove(path.join(install_path, f"encryptext_v{version}.pyw"))
+    remove(path.join(install_path, "installer_output.log"))
+
     completed = True
+
 
 # Set the default install path
 changeInstallPath("CHECKUSERTYPE")
