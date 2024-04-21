@@ -68,6 +68,8 @@ def appCreation():
                 "tkinterweb",
                 "--exclude-module",
                 "pywin32",
+                "--exclude-module",
+                "Pillow",
                 file_path
     ]
     # Redirect both stdout and stderr to /dev/null or NUL depending on the platform
