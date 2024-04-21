@@ -3,17 +3,25 @@
 from os import rename, path
 from shutil import rmtree, copy
 import hashlib
+import platform
 import PyInstaller.__main__
 
 version = "1.9.4"
 testing = True
 
+os_type = platform.system()
+
 def update_build_number() -> str:
-    with open("builds/build_number.txt", "r") as file:
+    file_path = "builds/build_number.txt"
+
+    with open(file_path, "r") as file:
         build_number = int(file.read().strip())
+
     build_number += 1
-    with open("builds/build_number.txt", "w") as file:
+
+    with open(file_path, "w") as file:
         file.write(str(build_number))
+
     return build_number
 
 build_number = update_build_number()
@@ -47,8 +55,8 @@ def modifyInstallerFile(add: bool) -> None:
         file.write(installer_file)
         file.truncate()
 
-def changeDebug(file_name: str, debug: bool) -> None:
-    with open(f".venv/Lib/site-packages/ttkbootstrap/{file_name}", "r+") as file:
+def changeDebug(debug: bool) -> None:
+    with open(f"to-package/ttkbootstrap/style.py", "r+") as file:
         lines = file.read()
         lines = f"debug = {debug}".join(lines.split(f"debug = {not debug}"))
         file.seek(0)
@@ -65,7 +73,7 @@ hash_str = computeHash(key)
 modifyInstallerFile(True)
 
 # Open the ttkbootstrap's files and change debug to False
-changeDebug("style.py", False)
+changeDebug(False)
 
 try:
     # Creates an executable file
@@ -82,9 +90,9 @@ try:
         '--add-data',
         'Encryptext.pyw;.',
         '--add-data',
-        'to-package/ttkbootstrap;ttkbootstrap',
+        'packages/ttkbootstrap;ttkbootstrap',
         '--add-data',
-        'to-package/tkinter;tkinter',
+        'packages/tkinter;tkinter',
         "--collect-all",
         "tkinterweb",
         "--collect-all",
@@ -99,7 +107,7 @@ except Exception as e:
     modifyInstallerFile(False)
 
     # Open the ttkbootstrap's files and change debug to True
-    changeDebug("style.py", True)
+    changeDebug(True)
 
     # Remove pyinstaller folders and files
     rmtree("dist")
@@ -111,15 +119,24 @@ except Exception as e:
 modifyInstallerFile(False)
 
 # Move the exe out of the dist folder
-if testing:
-    rename(path.join("dist", "encryptext_installer.exe"), f"builds/testing/encryptext_installer_v{version}_64bit.exe")
+if os_type == "Windows":
+    end_file_type = "exe"
+elif os_type == "Darwin":
+    end_file_type = ""
+elif os_type == "Linux":
+    end_file_type = "bin"
 else:
-    copy(path.join("dist", "encryptext_installer.exe"), f"builds/testing/encryptext_installer_v{version}_64bit_release.exe")
+    end_file_type = ""
+
+if testing:
+    rename(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/testing/{os_type.lower()}/encryptext_installer_v{version}_64bit.{end_file_type}")
+else:
+    copy(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/testing/{os_type.lower()}/encryptext_installer_v{version}_64bit_release.{end_file_type}")
     version = '.'.join(version.split('.')[0:-1])
-    rename(path.join("dist", "encryptext_installer.exe"), f"builds/release/encryptext_installer_v{version}_64bit.exe")
+    rename(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/release/{os_type.lower()}/encryptext_installer_v{version}_64bit.{end_file_type}")
 
 # Open the ttkbootstrap's files and change debug to True
-changeDebug("style.py", True)
+changeDebug(True)
 
 # Remove pyinstaller folders and files
 rmtree("dist")

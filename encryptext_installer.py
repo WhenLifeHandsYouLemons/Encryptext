@@ -15,6 +15,9 @@ from string import ascii_letters, digits
 import threading as t
 # https://github.com/rsalmei/alive-progress
 from alive_progress import alive_bar, styles
+import platform
+
+os_type = platform.system()
 
 version = "INSERT VERSION NUMBER HERE"
 
@@ -24,7 +27,7 @@ print("Please wait...")
 home_dir = path.expanduser("~")
 dir_path = path.join(home_dir, ".encryptext")
 
-# Used for getting files when using one-file mode .exe format
+# Used for getting files when using one-file mode
 def getTrueFilename(filename):
     try:
         base = sys._MEIPASS
@@ -144,12 +147,21 @@ hash_str = "INSERT COMPUTED HASH HERE"
 file = text.split("HASH STRING HERE")
 text = hash_str.join(file)
 
+if os_type == "Windows":
+    end_file_type = "exe"
+elif os_type == "Darwin":
+    end_file_type = ""
+elif os_type == "Linux":
+    end_file_type = "bin"
+else:
+    end_file_type = ""
+
 # Communicate to old program
 return_attributes = ""
 if update == "u":
     try:
-        exe_files = [f for f in listdir(dir_path) if f.endswith('.exe')]
-        return_attributes = run([f"{path.join(dir_path, exe_files[0])}", hash_str], stdout=PIPE)
+        exec_files = [f for f in listdir(dir_path) if f.endswith(f'.{end_file_type}')]
+        return_attributes = run([f"{path.join(dir_path, exec_files[0])}", hash_str], stdout=PIPE)
         return_attributes = return_attributes.stdout.decode().split("(")[-1].split(")")[0].split(", ")
     except IndexError:
         raise Exception("Encryptext hasn't been installed before! Please install the program before trying to update.")
@@ -291,41 +303,44 @@ app_thread.join()
 
 # Remove old version if it's the same version number before moving new one out
 try:
-    remove(path.join(dir_path, f"encryptext_v{version}.exe"))
+    remove(path.join(dir_path, f"encryptext_v{version}.{end_file_type}"))
 except: pass
 
-# Moves the exe out of the dist folder
-rename(path.join(dir_path, "dist", "encryptext.exe"), path.join(dir_path, f"encryptext_v{version}.exe"))
+# Moves the exec out of the dist folder
+rename(path.join(dir_path, "dist", f"encryptext.{end_file_type}"), path.join(dir_path, f"encryptext_v{version}.{end_file_type}"))
 
 # Create desktop shortcut for Windows
-# https://stackoverflow.com/a/69597224
-try:
-    from win32com.client import Dispatch
+if os_type == "Windows":
+    # https://stackoverflow.com/a/69597224
+    try:
+        from win32com.client import Dispatch
 
-    shortcut_path = path.join(home_dir, "Desktop", f"Encryptext_v{version}.lnk")
-    target_path = path.join(dir_path, f"encryptext_v{version}.exe")
+        shortcut_path = path.join(home_dir, "Desktop", f"Encryptext_v{version}.lnk")
+        target_path = path.join(dir_path, f"encryptext_v{version}.{end_file_type}")
 
-    shell = Dispatch('WScript.Shell')
-    shortcut = shell.CreateShortCut(shortcut_path)
-    shortcut.Targetpath = target_path
-    shortcut.save()
-except:
-    print(f"Couldn't create Desktop shortcut!")
+        shell = Dispatch('WScript.Shell')
+        shortcut = shell.CreateShortCut(shortcut_path)
+        shortcut.Targetpath = target_path
+        shortcut.save()
+    except:
+        print(f"Couldn't create Desktop shortcut!")
 
-# Create Start Menu shortcut for Windows
-try:
-    # Create Start Menu folder for Encryptext
-    makedirs(path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext"), exist_ok=True)
+    # Create Start Menu shortcut for Windows
+    try:
+        # Create Start Menu folder for Encryptext
+        makedirs(path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext"), exist_ok=True)
 
-    shortcut_path = path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext", f"Encryptext {version}.lnk")
-    target_path = path.join(dir_path, f"encryptext_v{version}.exe")
+        shortcut_path = path.join(home_dir, "AppData", "Roaming", "Microsoft", "Windows", "Start Menu", "Programs", "Encryptext", f"Encryptext {version}.lnk")
+        target_path = path.join(dir_path, f"encryptext_v{version}.{end_file_type}")
 
-    shell = Dispatch('WScript.Shell')
-    shortcut = shell.CreateShortCut(shortcut_path)
-    shortcut.Targetpath = target_path
-    shortcut.save()
-except:
-    print("Couldn't create Start Menu shortcut!")
+        shell = Dispatch('WScript.Shell')
+        shortcut = shell.CreateShortCut(shortcut_path)
+        shortcut.Targetpath = target_path
+        shortcut.save()
+    except:
+        print("Couldn't create Start Menu shortcut!")
+
+    # Add
 
 print("\n\nCreated program!")
 
