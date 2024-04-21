@@ -16,7 +16,7 @@ from random import choice, randint
 from string import ascii_letters, digits
 
 # Used for getting files when using one-file mode .exe format
-def getTrueFilename(filename):
+def getTrueFilename(filename: str) -> str:
     try:
         base = sys._MEIPASS
     except Exception:
@@ -34,7 +34,7 @@ format_item_separator = "FORMAT ITEM SEPARATOR HERE"
 format_separator = "FORMAT SEPARATOR HERE"
 format_string = "FORMAT STRING HERE"
 
-def updateMode() -> tuple:
+def updateMode() -> 'tuple[str, str, str, str]':
     return (format_item_separator, format_separator, format_string, encrypt_key)
 
 arguments = sys.argv
@@ -65,8 +65,7 @@ if not debug:
 import ttkbootstrap as ttk
 
 try:
-    settings_path = join(expanduser("~"), ".encryptext", "settings.json")
-    with open(settings_path, "r", encoding="utf-8") as file:
+    with open("settings.json", "r", encoding="utf-8") as file:
         settings = json.load(file)
     # Replace the "true" and "false" strings with the boolean version
     for key, value in settings.items():
@@ -92,8 +91,8 @@ except FileNotFoundError:
             "fontStyle": "Arial",
             "fontScaleFactor": 1,
             "language": "en_US",
-            "autoSave": False,
-            "autoSaveInterval": 0,
+            "autoSave": True,
+            "autoSaveInterval": 15,
             "showLineNumbers": False,
             "wrapLines": True,
             "highlightActiveLine": False,
@@ -264,7 +263,7 @@ class WrappedLabel(ttk.Label):
 class PreferenceWindow(tk.Toplevel):
     win_open = False
 
-    def __init__(self, close=False) -> None:
+    def __init__(self, close: bool = False) -> None:
         if not self.win_open and not close:
             self.pref_window = tk.Toplevel()
 
@@ -409,7 +408,7 @@ class PreferenceWindow(tk.Toplevel):
 class PreviewWindow(tk.Toplevel):
     win_open = False
 
-    def __init__(self, close=False) -> None:
+    def __init__(self, close: bool = False) -> None:
         if not self.win_open and not close:
             self.preview_window = tk.Toplevel()
 
@@ -428,7 +427,7 @@ class PreviewWindow(tk.Toplevel):
         elif self.win_open:
             self.preview_window.focus()
 
-    def closeWindow(self, other_args=None) -> None:
+    def closeWindow(self, other_args = None) -> None:
         self.preview_window.destroy()
         self.win_open = False
 
@@ -539,7 +538,7 @@ prev_key = ""
 Functions
 """
 
-def updateTags():
+def updateTags() -> str:
     global file_format_tags
 
     current_tab = getCurrentTab()
@@ -573,29 +572,36 @@ def updateTags():
 
     return formatted_tags
 
-def quitApp(Event=None, force=False):
-    global settings
-
-    current_tab = getCurrentTab()
-    if current_tab == -1:
-        # Save any settings changes
-        settings["recentFilePaths"] = recent_files
-        try:
-            with open(settings_path, "w") as file:
-                settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
-                file.write(str(settings))
-        except FileNotFoundError or NameError as e:
-            if debug:
-                messagebox.askokcancel("ERROR", f"Error: {e}")
-        except Exception as e:
-            messagebox.askokcancel("ERROR", f"Error: {e}")
-
+def quitApp(Event = None, force: bool = False) -> None:
+    def closeWindows() -> None:
         try:
             preview_window.destroy()
             pref_window.closeWindow()
         finally:
             root.destroy()
             sys.exit()
+
+    def savePreferences() -> bool:
+        global settings
+
+        settings["recentFilePaths"] = recent_files
+        try:
+            with open("settings.json", "r+") as file:
+                settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
+                file.write(str(settings))
+        except FileNotFoundError:
+            return True
+        except NameError as e:
+            if debug:
+                return messagebox.askokcancel("ERROR", f"Error: {e}")
+        except Exception as e:
+            return messagebox.askokcancel("Error", f"Error: {e}\n\nUnknown error. If this problem persists, please contact the developer at 'https://github.com/WhenLifeHandsYouLemons/Encryptext'.")
+
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        # Save any settings changes
+        if savePreferences():
+            closeWindows()
 
     # Check if any of the tabs are not saved yet
     quit_confirm = True
@@ -610,25 +616,10 @@ def quitApp(Event=None, force=False):
 
     if quit_confirm:
         # Save any settings changes
-        settings["recentFilePaths"] = recent_files
-        try:
-            with open(settings_path, "w") as file:
-                settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
-                file.write(str(settings))
-        except FileNotFoundError or NameError as e:
-            if debug:
-                messagebox.showerror("ERROR", f"Error: {e}")
-        except Exception:
-            messagebox.showerror("Error", "Unknown error. If this problem persists, please contact the developer at 'https://github.com/WhenLifeHandsYouLemons/Encryptext'.")
+        if savePreferences():
+            closeWindows()
 
-        try:
-            preview_window.destroy()
-            pref_window.closeWindow()
-        finally:
-            root.destroy()
-            sys.exit()
-
-def openFile(Event=None, current=False, file_path=None):
+def openFile(Event = None, current: bool = False, file_path: str = None) -> None:
     # Make save_location global to change it for the whole program
     global file_save_locations, file_format_tags, file_histories, current_versions, file_format_tag_nums, file_extensions
 
@@ -838,7 +829,7 @@ def openFile(Event=None, current=False, file_path=None):
                     elif "normal" in format[0]:
                         textboxes[current_tab].tag_config(format[0], font=(format[3], int(format[4]), "normal"))
 
-def newFile(Event=None):
+def newFile(Event = None) -> None:
     global file_save_locations, file_histories, current_versions
 
     current_tab = getCurrentTab()
@@ -867,7 +858,7 @@ def newFile(Event=None):
 
         updatePreview()
 
-def autoSaveFile():
+def autoSaveFile() -> None:
     # Save the file if there is a tab open
     current_tab = getCurrentTab()
     if current_tab != -1:
@@ -877,7 +868,7 @@ def autoSaveFile():
     # Delay time is in milliseconds
     root.after(settings["otherSettings"]["autoSaveInterval"]*1000, autoSaveFile)
 
-def saveFile(Event=None, auto_save=False):
+def saveFile(Event = None, auto_save: bool = False) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -914,7 +905,7 @@ def saveFile(Event=None, auto_save=False):
 
         trackChanges(override=True)
 
-def saveFileAs(Event=None):
+def saveFileAs(Event = None) -> None:
     global file_save_locations
 
     current_tab = getCurrentTab()
@@ -949,7 +940,7 @@ def saveFileAs(Event=None):
         # Open the new file
         openFile(current=True)
 
-def undo(Event=None):
+def undo(Event = None) -> None:
     global file_histories
 
     current_tab = getCurrentTab()
@@ -982,7 +973,7 @@ def undo(Event=None):
 
         setSaveStatus(False, current_tab)
 
-def redo(Event=None):
+def redo(Event = None) -> None:
     global file_histories, current_versions
 
     current_tab = getCurrentTab()
@@ -1017,7 +1008,7 @@ def redo(Event=None):
 
         setSaveStatus(False, current_tab)
 
-def updatePreview(Event=None, override=False):
+def updatePreview(Event = None, override: bool = False) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         try:
@@ -1034,7 +1025,7 @@ def updatePreview(Event=None, override=False):
                 # If the preview window was opened manually
                 preview_window.__init__()
 
-def trackChanges(Event=None, override=False):
+def trackChanges(Event = None, override: bool = False) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1082,7 +1073,7 @@ def trackChanges(Event=None, override=False):
     # Update the preview
     updatePreview(override=True)
 
-def cut(Event=None):
+def cut(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1091,7 +1082,7 @@ def cut(Event=None):
 
     setSaveStatus(False, current_tab)
 
-def copy(Event=None):
+def copy(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1100,7 +1091,7 @@ def copy(Event=None):
 
     setSaveStatus(False, current_tab)
 
-def paste(Event=None):
+def paste(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1109,7 +1100,7 @@ def paste(Event=None):
 
     setSaveStatus(False, current_tab)
 
-def viewFile(Event=None):
+def viewFile(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1120,7 +1111,7 @@ def viewFile(Event=None):
     # Set the textbox to be read-only
     textboxes[current_tab].config(state=tk.DISABLED)
 
-def viewingMode(Event=None):
+def viewingMode(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1128,7 +1119,7 @@ def viewingMode(Event=None):
     # Set the textbox to be read-only
     textboxes[current_tab].config(state=tk.DISABLED)
 
-def editingMode(Event=None):
+def editingMode(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1136,24 +1127,24 @@ def editingMode(Event=None):
     # Set the textbox to be writable
     textboxes[current_tab].config(state=tk.NORMAL)
 
-def openPreview(Event=None):
+def openPreview(Event = None) -> None:
     preview_window.__init__()
 
-def selectAll(Event=None):
+def selectAll(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
     textboxes[current_tab].event_generate("<<SelectAll>>")
 
-def deselectAll(Event=None):
+def deselectAll(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
 
     textboxes[current_tab].event_generate("<<SelectNone>>")
 
-def deleteWholeWord(Event=None):
+def deleteWholeWord(Event = None) -> 'str | None':
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1163,7 +1154,7 @@ def deleteWholeWord(Event=None):
 
     return "break"
 
-def moveWholeWord(direction, Event=None):
+def moveWholeWord(direction: str, Event = None) -> 'str | None':
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1177,7 +1168,7 @@ def moveWholeWord(direction, Event=None):
 
     return "break"
 
-def selectWholeWord(direction, Event=None):
+def selectWholeWord(direction: str, Event = None) -> 'str | None':
     current_tab = getCurrentTab()
     if current_tab == -1:
         return None
@@ -1191,16 +1182,13 @@ def selectWholeWord(direction, Event=None):
 
     return "break"
 
-def openPreferences():
-    pref_window.__init__()
-
-def aboutMenu(Event=None):
+def aboutMenu(Event = None) -> None:
     messagebox.showinfo("About Encryptext", f"Unlock a new level of security and versatility with Encryptext, the text editor designed for the modern user. Seamlessly blending essential features with modern encryption technology, Encryptext ensures your documents are safeguarded like never before.\n\nFree for everyone. Forever. ❤\n\nVersion {version}")
 
-def documentation(Event=None):
+def documentation(Event = None) -> None:
     open_new("https://github.com/WhenLifeHandsYouLemons/Encryptext")
 
-def changeToBold(Event=None):
+def changeToBold(Event = None) -> 'str | None':
     global file_format_tag_nums
 
     current_tab = getCurrentTab()
@@ -1222,7 +1210,7 @@ def changeToBold(Event=None):
 
     return "break"
 
-def changeToItalic(Event=None):
+def changeToItalic(Event = None) -> 'str | None':
     global file_format_tag_nums
 
     current_tab = getCurrentTab()
@@ -1244,7 +1232,7 @@ def changeToItalic(Event=None):
 
     return "break"
 
-def changeToNormal(Event=None):
+def changeToNormal(Event = None) -> 'str | None':
     global file_format_tag_nums
 
     current_tab = getCurrentTab()
@@ -1266,7 +1254,7 @@ def changeToNormal(Event=None):
 
     return "break"
 
-def changeTextColour(Event=None):
+def changeTextColour(Event = None) -> 'str | None':
     global file_format_tag_nums
 
     current_tab = getCurrentTab()
@@ -1292,7 +1280,7 @@ def changeTextColour(Event=None):
 
     return "break"
 
-def increaseFont(Event=None):
+def increaseFont(Event = None) -> 'str | None':
     global file_format_tag_nums, font_sizes
 
     current_tab = getCurrentTab()
@@ -1319,7 +1307,7 @@ def increaseFont(Event=None):
 
     return "break"
 
-def decreaseFont(Event=None):
+def decreaseFont(Event = None) -> 'str | None':
     global file_format_tag_nums, font_sizes
 
     current_tab = getCurrentTab()
@@ -1346,13 +1334,13 @@ def decreaseFont(Event=None):
 
     return "break"
 
-def showQuickMenu(Event=None):
+def showQuickMenu(Event = None) -> None:
     try:
         rightclickmenu.tk_popup(Event.x_root, Event.y_root)
     finally:
         rightclickmenu.grab_release()
 
-def addNewTab(Event=None):
+def addNewTab(Event = None) -> str:
     # Create a frame to add all the stuff to
     frames.append(tk.Frame(tab_panes, cursor="xterm"))
 
@@ -1436,7 +1424,7 @@ def addNewTab(Event=None):
 
     return "break"
 
-def closeCurrentTab(Event=None):
+def closeCurrentTab(Event = None) -> 'str | None':
     current_tab = getCurrentTab()
     if current_tab == -1:
         quitApp()
@@ -1480,7 +1468,7 @@ def getCurrentTab() -> int:
         return -1
 
 # Update both the highlight and line numbers
-def updateHighlightAndNumbers(Event=None):
+def updateHighlightAndNumbers(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab != -1:
         line_number_areas[current_tab].redraw()
@@ -1488,7 +1476,7 @@ def updateHighlightAndNumbers(Event=None):
 
 # Update the textbox's current line highlight
 # Adapted from https://stackoverflow.com/a/9720858
-def updateActiveLine(Event=None):
+def updateActiveLine(Event = None) -> None:
     current_tab = getCurrentTab()
     if current_tab != -1:
         textboxes[current_tab].tag_remove("current_line", "1.0", "end")
@@ -1505,7 +1493,7 @@ def setSaveStatus(save: bool, current_tab: int) -> None:
         if "*" in tab_title:
             tab_panes.tab(cur_tab_id, text=f"{tab_panes.tab(cur_tab_id)['text'].split('*')[0]} ")
 
-def captureSpecialKeys(Event=None):
+def captureSpecialKeys(Event = None) -> str:
     cur_key = Event.keysym
     mod_key = Event.state
 
@@ -1591,7 +1579,7 @@ Menu Bar
 root.bind("<Control-Key>", captureSpecialKeys)
 root.bind("<Alt-Key>", captureSpecialKeys)
 
-def createMenuBar():
+def createMenuBar() -> None:
     # Top bar menu
     menubar = tk.Menu(root, tearoff=False, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
 
@@ -1649,7 +1637,7 @@ def createMenuBar():
     editmenu.add_command(label="Close Markdown Preview", accelerator="Ctrl+Shift+P", command=preview_window.closeWindow)
     editmenu.add_command(label="Update Markdown Preview", accelerator="Ctrl+E", command=updatePreview)
     editmenu.add_separator()
-    editmenu.add_command(label="Edit Preferences", command=openPreferences)
+    editmenu.add_command(label="Edit Preferences", command=pref_window.__init__)
 
     # Format menu items
     formatmenu.add_command(label="Text Colour", command=changeTextColour)

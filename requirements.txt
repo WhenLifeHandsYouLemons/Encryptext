@@ -7,3 +7,4 @@ alive_progress
 pywin32
 pygments
 ttkbootstrap
+Pillow
