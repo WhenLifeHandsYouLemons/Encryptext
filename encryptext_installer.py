@@ -12,6 +12,7 @@ from shutil import rmtree
 from string import ascii_letters, digits
 import sys
 from subprocess import PIPE, run
+import time
 import tkinter as tk
 from tkinter import filedialog, ttk
 from cryptography.fernet import Fernet as F
@@ -47,7 +48,6 @@ width = 750
 height = 550
 root.geometry(f"{width}x{height}")  # You can set this to the desired size
 root.resizable(False, False)
-
 
 def swapPage(cur_page: int, next_page: int) -> None:
     """
@@ -327,7 +327,6 @@ def createPage(page_no: int) -> tk.Frame:
         # global progress_bar
         progress_bar = ttk.Progressbar(center, value=0, mode="determinate", orient="horizontal")
         progress_bar.pack(side="top", fill="x", padx=10, pady=20)
-        progress_bar.start()
         progress_bar.after(0, lambda: installApp(progress_bar))
 
         center.pack(side="top", fill="both", expand=True)
@@ -353,15 +352,13 @@ def createPage(page_no: int) -> tk.Frame:
     page.pack(fill="both", side="top", expand=True)
     return page
 
-
 # Create multiple pages
 pages = []
 for i in range(10):  # Change this to the number of pages you want
     page = tk.Frame(root)
     pages.append(page)
 
-
-# Widget information here
+# Widget information
 bar_height = 50
 orig_image_size = (1024, 1024)
 final_splash_size = (250, height-bar_height)
@@ -385,8 +382,7 @@ style.configure("B.TLabel", background="#FFF", padding=(10, 5), wraplength=width
 style.configure("TRadiobutton", background="#FFF", padding=(25, 5), font=("Arial", 11))
 style.configure("TCheckbutton", background="#FFF", padding=(25, 5), font=("Arial", 11))
 
-
-# Installer info
+# Installer information
 home_dir = path.expanduser("~")
 
 user_type = tk.StringVar(root, "current")
@@ -411,7 +407,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 """
 agreement_accept = tk.BooleanVar(root, False)
 
-completed = False
+created = False
 update = False
 
 os_type = platform.system()
@@ -424,7 +420,6 @@ elif os_type == "Linux":
     end_file_type = "bin"
 else:
     end_file_type = ""
-
 
 def changeInstallPath(path_str: str = None) -> None:
     """
@@ -507,27 +502,28 @@ def checkInstallCompletion(bar: ttk.Progressbar, prev_val: int = 0) -> None:
         bar (ttk.Progressbar): The progress bar widget to update.
         prev_val (int, optional): The previous value of the progress bar. Defaults to 0.
     """
-    print("It's actually running this, but not updating...")
+    # Update the window so it isn't stuck
     root.update()
 
-    # Load output file
-    with open(path.join(install_path.get(), "installer_output.log"), 'r') as output_file:
-        text = output_file.readlines()
-
     try:
+        # Load output file
+        with open(path.join(install_path.get(), "installer_output.log"), 'r') as output_file:
+            text = output_file.readlines()
+
         # This is just a rough approximation of how long the process might take
         # As pyinstaller doesn't provide ETAs for compilation, we have to guess
         # based on the output text that we store in a log file and then delete
         # once it finishes installing.
-        val = int(int(text[-1].split(": ")[0].split(" ")[0]) / 117000) * 100
+        val = int((int(text[-1].split(": ")[0].split(" ")[0]) / 117000) * 100)
     except:
         val = prev_val
     bar["value"] = val
 
-    if completed:
+    if created:
         swapPage(7, 8)
     else:
-        bar.after_idle(lambda: checkInstallCompletion(bar, val))
+        time.sleep(1)
+        checkInstallCompletion(bar, val)
 
 def installApp(bar: ttk.Progressbar) -> None:
     """
@@ -557,7 +553,7 @@ def installApp(bar: ttk.Progressbar) -> None:
 
         return file
 
-    global completed, update, install_path
+    global update, install_path
 
     # Get the actual string so it's easier to access
     installed_path = install_path.get()
@@ -588,8 +584,8 @@ def installApp(bar: ttk.Progressbar) -> None:
             return_attributes = return_attributes.stdout.decode().split("(")[-1].split(")")[0].split(", ")
         except IndexError:
             raise Exception("Encryptext hasn't been installed before! Please install the program before trying to update.")
-        except:
-            raise Exception("Something went wrong! Please try again or file a crash report on GitHub.")
+        except Exception as e:
+            raise Exception("Something went wrong! Please try again or file a crash report on GitHub. Error: {e}")
 
         # Encryption key
         key = str(return_attributes[3].split("'")[1])
@@ -619,6 +615,8 @@ def installApp(bar: ttk.Progressbar) -> None:
     text = addToFile(text, "FORMAT STRING HERE", format_string)
 
     settings_file_path = path.join(installed_path, "settings.json")
+
+    text = addToFile(text, "SETTINGS FILE LOCATION HERE", settings_file_path)
 
     data = {
         "recentFilePaths": [],
@@ -688,7 +686,7 @@ def installApp(bar: ttk.Progressbar) -> None:
     app_thread.start()
 
     # Run the progress bar
-    bar.after(10, lambda: checkInstallCompletion(bar))
+    checkInstallCompletion(bar)
 
     # Wait for app compilation to finish
     app_thread.join()
@@ -715,8 +713,8 @@ def installApp(bar: ttk.Progressbar) -> None:
                 shortcut = shell.CreateShortCut(shortcut_path)
                 shortcut.Targetpath = target_path
                 shortcut.save()
-            except:
-                print(f"Couldn't create Desktop shortcut!")
+            except Exception as e:
+                print(f"Couldn't create Desktop shortcut! Error: {e}")
 
         if start_menu_folder.get():
             # Create Start Menu shortcut for Windows
@@ -731,11 +729,13 @@ def installApp(bar: ttk.Progressbar) -> None:
                 shortcut = shell.CreateShortCut(shortcut_path)
                 shortcut.Targetpath = target_path
                 shortcut.save()
-            except:
-                print("Couldn't create Start Menu shortcut!")
+            except Exception as e:
+                print(f"Couldn't create Start Menu shortcut! Error: {e}")
     elif os_type == "Linux":
+        #TODO: Shortcuts for Linux
         pass
     elif os_type == "Darwin":
+        #TODO: Shortcuts for MacOS
         pass
 
     # Removes the files from pyinstaller
@@ -744,16 +744,16 @@ def installApp(bar: ttk.Progressbar) -> None:
     remove(path.join(installed_path, f"encryptext_v{version}.pyw"))
     remove(path.join(installed_path, "installer_output.log"))
 
-    completed = True
+    return True
 
-def appCreation() -> None:
+def appCreation() -> bool:
     """
-    Compiles the application using PyInstaller with the specified options.
+    Compiles the application using PyInstaller.
 
     Returns:
-        None
+        bool: True if the application was successfully compiled, None otherwise.
     """
-    global install_path
+    global install_path, created
 
     # Get the actual string so it's easier to access
     installed_path = install_path.get()
@@ -803,6 +803,8 @@ def appCreation() -> None:
             stderr=output_file,
             cwd=installed_path)
 
+    created = True
+    return True
 
 # Set the default install path
 changeInstallPath("CHECKUSERTYPE")

@@ -69,8 +69,13 @@ if not debug:
     sys.path.append(getTrueFilename("tkinterweb"))
 import tkinterweb
 
+if not debug:
+    sys.path.pop()
+
+settings_file_location = r"SETTINGS FILE LOCATION HERE"
+
 try:
-    with open("settings.json", "r", encoding="utf-8") as file:
+    with open(settings_file_location, "r", encoding="utf-8") as file:
         settings = json.load(file)
     # Replace the "true" and "false" strings with the boolean version
     for key, value in settings.items():
@@ -466,7 +471,6 @@ if theme == "light":
 else:
     styles = ttk.Style(theme="darkly")
 
-# root = tk.Tk()
 root = styles.master
 pref_window = PreferenceWindow(close=True)
 preview_window = PreviewWindow(close=True)
@@ -586,24 +590,24 @@ def quitApp(Event = None, force: bool = False) -> None:
             preview_window.destroy()
             pref_window.closeWindow()
         finally:
-            root.destroy()
-            sys.exit()
+            try:
+                root.destroy()
+                sys.exit()
+            except:
+                pass
 
     def savePreferences() -> bool:
         global settings
 
         settings["recentFilePaths"] = recent_files
         try:
-            with open("settings.json", "r+") as file:
+            with open(settings_file_location, "r+") as file:
                 settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
                 file.write(str(settings))
-        except FileNotFoundError:
-            return True
-        except NameError as e:
-            if debug:
-                return messagebox.askokcancel("ERROR", f"Error: {e}")
         except Exception as e:
             return messagebox.askokcancel("Error", f"Error: {e}\n\nUnknown error. If this problem persists, please contact the developer at 'https://github.com/WhenLifeHandsYouLemons/Encryptext'.")
+
+        return True
 
     current_tab = getCurrentTab()
     if current_tab == -1:
