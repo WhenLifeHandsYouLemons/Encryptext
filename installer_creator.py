@@ -1,32 +1,68 @@
 #!/usr/bin/python'
 
+# Created by Sooraj S
+# https://encryptext.sooraj.dev
+# Free for everyone. Forever.
+
 from os import rename, path
 from shutil import rmtree, copy
 import hashlib
+import platform
 import PyInstaller.__main__
 
-version = "1.9.3"
+version = "1.9.4"
 testing = False
 
+os_type = platform.system()
+
 def update_build_number() -> str:
-    with open("builds/build_number.txt", "r") as file:
+    """
+    Updates the build number by reading the current build number from a file,
+    incrementing it by 1, and then writing the updated build number back to the file.
+
+    Returns:
+        str: The updated build number.
+    """
+    file_path = "builds/build_number.txt"
+
+    with open(file_path, "r") as file:
         build_number = int(file.read().strip())
+
     build_number += 1
-    with open("builds/build_number.txt", "w") as file:
+
+    with open(file_path, "w") as file:
         file.write(str(build_number))
+
     return build_number
 
 build_number = update_build_number()
 version = f"{version}.{build_number}"
 
-# Compute hash of the input string
 def computeHash(input_string: str) -> str:
+    """
+    Computes the SHA-256 hash of the input string.
+
+    Args:
+        input_string (str): The string to compute the hash for.
+
+    Returns:
+        str: The hexadecimal representation of the computed hash.
+    """
     hash_object = hashlib.sha256()
     hash_object.update(input_string.encode('utf-8'))
 
     return hash_object.hexdigest()
 
 def modifyInstallerFile(add: bool) -> None:
+    """
+    Modifies the content of the 'encryptext_installer.py' file by adding or removing computed hash and version number.
+
+    Args:
+        add (bool): If True, add the computed hash and version number. If False, remove the computed hash and version number.
+
+    Returns:
+        None
+    """
     with open("encryptext_installer.py", "r+") as file:
         installer_file = file.read()
 
@@ -47,8 +83,17 @@ def modifyInstallerFile(add: bool) -> None:
         file.write(installer_file)
         file.truncate()
 
-def changeDebug(file_name: str, debug: bool) -> None:
-    with open(f".venv/Lib/site-packages/ttkbootstrap/{file_name}", "r+") as file:
+def changeDebug(debug: bool) -> None:
+    """
+    Change the debug mode in the style.py file.
+
+    Args:
+        debug (bool): The new value for the debug mode.
+
+    Returns:
+        None
+    """
+    with open(f"packages/ttkbootstrap/style.py", "r+") as file:
         lines = file.read()
         lines = f"debug = {debug}".join(lines.split(f"debug = {not debug}"))
         file.seek(0)
@@ -65,30 +110,34 @@ hash_str = computeHash(key)
 modifyInstallerFile(True)
 
 # Open the ttkbootstrap's files and change debug to False
-changeDebug("style.py", False)
+changeDebug(False)
 
 try:
     # Creates an executable file
     PyInstaller.__main__.run([
         'encryptext_installer.py',
+        '--name',
+        'encryptext_installer',
         '--onefile',
         '--clean',
         '--log-level',
         'INFO',
         '--icon',
-        'app_icon.ico',
+        'images/app_icon.ico',
         '--add-data',
-        'app_icon.ico;.',
+        'images/app_icon.ico;.',
         '--add-data',
         'Encryptext.pyw;.',
         '--add-data',
-        '.venv/Lib/site-packages/ttkbootstrap;ttkbootstrap',
+        'packages/ttkbootstrap;ttkbootstrap',
         '--add-data',
-        '.venv/Lib/site-packages/tkinter;tkinter',
+        'packages/tkinter;tkinter',
+        '--add-data',
+        'packages/tkinterweb;tkinterweb',
+        '--add-data',
+        'images;images',
         "--collect-all",
         "tkinterweb",
-        "--collect-all",
-        "alive_progress",
         "--collect-all",
         "grapheme"
     ])
@@ -99,7 +148,7 @@ except Exception as e:
     modifyInstallerFile(False)
 
     # Open the ttkbootstrap's files and change debug to True
-    changeDebug("style.py", True)
+    changeDebug(True)
 
     # Remove pyinstaller folders and files
     rmtree("dist")
@@ -111,15 +160,24 @@ except Exception as e:
 modifyInstallerFile(False)
 
 # Move the exe out of the dist folder
-if testing:
-    rename(path.join("dist", "encryptext_installer.exe"), f"builds/testing/encryptext_installer_v{version}_64bit.exe")
+if os_type == "Windows":
+    end_file_type = "exe"
+elif os_type == "Darwin":
+    end_file_type = ""
+elif os_type == "Linux":
+    end_file_type = "bin"
 else:
-    copy(path.join("dist", "encryptext_installer.exe"), f"builds/testing/encryptext_installer_v{version}_64bit_release.exe")
+    end_file_type = ""
+
+if testing:
+    rename(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/{os_type.lower()}/testing/encryptext_installer_v{version}_64bit.{end_file_type}")
+else:
+    copy(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/{os_type.lower()}/testing/encryptext_installer_v{version}_64bit_release.{end_file_type}")
     version = '.'.join(version.split('.')[0:-1])
-    rename(path.join("dist", "encryptext_installer.exe"), f"builds/release/encryptext_installer_v{version}_64bit.exe")
+    rename(path.join("dist", f"encryptext_installer.{end_file_type}"), f"builds/{os_type.lower()}/release/encryptext_installer_v{version}_64bit.{end_file_type}")
 
 # Open the ttkbootstrap's files and change debug to True
-changeDebug("style.py", True)
+changeDebug(True)
 
 # Remove pyinstaller folders and files
 rmtree("dist")
