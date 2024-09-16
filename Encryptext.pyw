@@ -75,8 +75,15 @@ if not debug:
 settings_file_location = r"SETTINGS FILE LOCATION HERE"
 
 try:
-    with open(settings_file_location, "r", encoding="utf-8") as file:
-        settings = json.load(file)
+    try:
+        with open(settings_file_location, "r", encoding="utf-8") as file:
+            settings = json.load(file)
+    except:
+        # Try simply opening the file as a string and then parse it
+        with open(settings_file_location, "r", encoding="utf-8") as file:
+            settings = file.readline()
+            settings = json.loads(" ".join(settings.split(" ")[:-1]))
+
     # Replace the "true" and "false" strings with the boolean version
     for key, value in settings.items():
         if isinstance(value, dict):
@@ -91,7 +98,7 @@ try:
             elif value == "true":
                 settings[key] = True
 
-    version = f"{'.'.join(version.split('.')[0:-1])} (build {version.split('.')[-1]})"
+    version = f"{'.'.join(version.split('.')[:-1])} (build {version.split('.')[-1]})"
 except FileNotFoundError as e:
     messagebox.showerror("Error Opening File", format_exc())
     print_exc()
@@ -590,18 +597,15 @@ def quitApp(Event = None, force: bool = False) -> None:
             preview_window.destroy()
             pref_window.closeWindow()
         finally:
-            try:
-                root.destroy()
-                sys.exit()
-            except:
-                pass
+            root.destroy()
+            sys.exit()
 
     def savePreferences() -> bool:
         global settings
 
         settings["recentFilePaths"] = recent_files
         try:
-            with open(settings_file_location, "r+") as file:
+            with open(settings_file_location, "r+", encoding="utf-8") as file:
                 settings = str(settings).replace("'", '"').replace("False", "false").replace("True", "true")
                 file.write(str(settings))
         except Exception as e:

@@ -11,7 +11,7 @@ import platform
 import PyInstaller.__main__
 
 version = "1.9.4"
-testing = True
+testing = False
 
 os_type = platform.system()
 

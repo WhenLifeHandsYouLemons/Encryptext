@@ -7,7 +7,7 @@
 # Imports
 import json
 from os import listdir, makedirs, path, environ, remove, rename, rmdir
-from random import choice, randint
+from secrets import choice
 from shutil import rmtree
 from string import ascii_letters, digits
 import sys
@@ -563,17 +563,17 @@ def installApp(bar: ttk.Progressbar) -> None:
         text = file.read()
 
     # Add version number to the file
-    file = addToFile(text, "VERSION NUMBER HERE", version)
+    text = addToFile(text, "VERSION NUMBER HERE", version)
 
     # Change debug mode to False if it's True
     try:
-        file = text.split("debug = True")
-        text = "debug = False".join(file)
+        text = text.split("debug = True")
+        text = "debug = False".join(text)
     except: pass
 
     # Adds computed hash to file
     hash_str = "INSERT COMPUTED HASH HERE"
-    file = addToFile(text, "HASH STRING HERE", hash_str)
+    text = addToFile(text, "HASH STRING HERE", hash_str)
 
     if update:
         # Communicate to old program
@@ -601,15 +601,17 @@ def installApp(bar: ttk.Progressbar) -> None:
         # For separators
         possible_characters = ascii_letters + digits
 
+        possible_lengths = [i for i in range(15, 46, 1)]
+
         # Create a format item separator string
-        format_item_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+        format_item_separator = "".join([choice(possible_characters) for i in range(choice(possible_lengths))])
         # Create a format separator string
-        format_separator = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+        format_separator = "".join([choice(possible_characters) for i in range(choice(possible_lengths))])
         # Create a format string
-        format_string = "".join([choice(possible_characters) for i in range(randint(15, 45))])
+        format_string = "".join([choice(possible_characters) for i in range(choice(possible_lengths))])
 
     # Add the strings to the file
-    text = addToFile(file, "ENCRYPTION KEY HERE", key)
+    text = addToFile(text, "ENCRYPTION KEY HERE", key)
     text = addToFile(text, "FORMAT ITEM SEPARATOR HERE", format_item_separator)
     text = addToFile(text, "FORMAT SEPARATOR HERE", format_separator)
     text = addToFile(text, "FORMAT STRING HERE", format_string)
@@ -637,7 +639,7 @@ def installApp(bar: ttk.Progressbar) -> None:
 
     # Otherwise the values will already be the default ones
     try:
-        with open(settings_file_path, "r") as file:
+        with open(settings_file_path, "r", encoding="utf-8") as file:
             file = json.load(file)
 
         data = {
