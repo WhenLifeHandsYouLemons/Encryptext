@@ -126,7 +126,7 @@ def createPage(page_no: int) -> tk.Frame:
 
         center.pack(side="top", fill="both", expand=True)
 
-        ttk.Label(main_content, text="Installation for all users requires Administrative privileges.", font=("Arial", 11), justify="left").pack(side="top", fill="x", anchor="nw", padx=50, pady=5)
+        ttk.Label(main_content, text="Installation for all users requires Administrative privileges. Please run this installer using the 'Run as administrator' option.", font=("Arial", 11), justify="left").pack(side="top", fill="x", anchor="nw", padx=50, pady=5)
         main_content.pack(anchor="n", side="top", fill="both", expand=True)
 
     # Install location
