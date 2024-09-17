@@ -10,8 +10,8 @@ import hashlib
 import platform
 import PyInstaller.__main__
 
-version = "1.9.4"
-testing = False
+version = "1.9.5"
+testing = True
 
 os_type = platform.system()
 

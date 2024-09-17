@@ -82,7 +82,7 @@ try:
         # Try simply opening the file as a string and then parse it
         with open(settings_file_location, "r", encoding="utf-8") as file:
             settings = file.readline()
-            settings = json.loads(" ".join(settings.split(" ")[:-1]))
+            settings = json.loads(r"}}".join(settings.split(r"}}")[0]))
 
     # Replace the "true" and "false" strings with the boolean version
     for key, value in settings.items():
@@ -113,6 +113,7 @@ except FileNotFoundError as e:
             "language": "en_US",
             "autoSave": True,
             "autoSaveInterval": 15,
+            "markdownFormat": False,
             "showLineNumbers": False,
             "wrapLines": True,
             "highlightActiveLine": False,
@@ -289,26 +290,26 @@ class PreferenceWindow(tk.Toplevel):
 
             self.pref_window.title("Preferences")
             self.pref_window.geometry("450x600")
-            self.pref_window.iconbitmap(getTrueFilename("app_icon.ico"))
+            if not debug:
+                self.pref_window.iconbitmap(getTrueFilename("app_icon.ico"))
             self.pref_window.protocol("WM_DELETE_WINDOW", self.closeWindow)
 
             self.win_open = True
-
             self.option_pady = 3
 
             # Title label
             self.title = WrappedLabel(self.pref_window, text="Preferences", font=(settings["otherSettings"]["fontStyle"], int(round(18*font_scale_factor))))
-
             self.title.pack(side="top", fill="x", anchor="nw", padx=5, pady=10)
+
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=5, pady=5)
 
             # Recent file number
             self.selected_recent_files = tk.IntVar(value=settings["maxRecentFiles"])
             self.recent_file_label = WrappedLabel(self.pref_window, text="Number of recent files to store: ", anchor="nw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             self.recent_file_val = ttk.Spinbox(self.recent_file_label, textvariable=self.selected_recent_files, from_=0, to=20, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-
             self.recent_file_label.pack(side="top", anchor="w", fill="x", padx=5)
             self.recent_file_val.pack(side="right", padx=20, pady=self.option_pady)
+
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
 
             # Font style picker
@@ -316,7 +317,6 @@ class PreferenceWindow(tk.Toplevel):
             self.font_style_label = WrappedLabel(self.pref_window, text="Display font style: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             font_options = sorted(list(font.families()))
             self.font_style_val = ttk.Combobox(self.font_style_label, textvariable=self.selected_font_style, values=font_options, state="readonly", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-
             self.font_style_label.pack(side="top", fill="x", padx=5, anchor="nw")
             self.font_style_val.pack(side="right", padx=20, pady=self.option_pady)
 
@@ -324,9 +324,9 @@ class PreferenceWindow(tk.Toplevel):
             self.selected_font_sf = tk.DoubleVar(value=settings["otherSettings"]["fontScaleFactor"])
             self.font_sf_label = WrappedLabel(self.pref_window, text="Display font size scale factor: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             self.font_sf_val = ttk.Spinbox(self.font_sf_label, textvariable=self.selected_font_sf, from_=0.5, to=2, increment=0.05, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-
             self.font_sf_label.pack(side="top", fill="x", padx=5, anchor="nw")
             self.font_sf_val.pack(side="right", padx=20, pady=self.option_pady)
+
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
 
             # Theme selector
@@ -334,25 +334,24 @@ class PreferenceWindow(tk.Toplevel):
             self.theme_label = WrappedLabel(self.pref_window, text="Theme: ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             self.light_theme_val = ttk.Radiobutton(self.theme_label, text="Light", value="light", variable=self.selected_theme)
             self.dark_theme_val = ttk.Radiobutton(self.theme_label, text="Dark", value="dark", variable=self.selected_theme)
-
             self.theme_label.pack(side="top", fill="x", padx=5, anchor="n")
             self.dark_theme_val.pack(side="right", padx=20, pady=self.option_pady)
             self.light_theme_val.pack(side="right", padx=20, pady=self.option_pady)
+
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
 
             # Auto-save selector
             self.selected_auto_save = tk.StringVar(value=str(settings["otherSettings"]["autoSave"]).lower())
             self.auto_save_val = ttk.Checkbutton(self.pref_window, text="Auto-save", variable=self.selected_auto_save, onvalue="true", offvalue="false")
-
             self.auto_save_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
 
             # Auto-save interval number
             self.selected_auto_save_interval_val = tk.IntVar(value=settings["otherSettings"]["autoSaveInterval"])
             self.auto_save_interval_label = WrappedLabel(self.pref_window, text="Auto-save interval (seconds): ", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
             self.auto_save_interval_val = ttk.Spinbox(self.auto_save_interval_label, textvariable=self.selected_auto_save_interval_val, from_=1, to=600, increment=5, width=5, font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-
             self.auto_save_interval_label.pack(side="top", fill="x", padx=5, anchor="nw")
             self.auto_save_interval_val.pack(side="right", padx=20, pady=self.option_pady)
+
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
 
             # Language picker
@@ -364,40 +363,38 @@ class PreferenceWindow(tk.Toplevel):
             # getenv("LANG").split(".")[0]
             lang_options = ["en_US"]
             self.language_val = ttk.Combobox(self.language_label, textvariable=self.selected_language, values=lang_options, state="readonly", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-
             self.language_label.pack(side="top", fill="x", padx=5, anchor="nw")
             self.language_val.pack(side="right", padx=20, pady=self.option_pady)
+
             ttk.Separator(self.pref_window, orient="horizontal").pack(side="top", fill="x", padx=100, pady=10)
 
-            # show checkboxes for other true/false options
+            # Show checkboxes for other true/false options
+            self.markdown_val = tk.StringVar(value=str(settings["otherSettings"]["markdownFormat"]).lower())
+            self.markdown_button = ttk.Checkbutton(self.pref_window, text="Use Markdown formatting (when using keyboard shortcuts)", variable=self.markdown_val, onvalue="true", offvalue="false")
+            self.markdown_button.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
+
             self.selected_show_line_no = tk.StringVar(value=str(settings["otherSettings"]["showLineNumbers"]).lower())
             self.show_line_no_val = ttk.Checkbutton(self.pref_window, text="Show line numbers", variable=self.selected_show_line_no, onvalue="true", offvalue="false")
-
             self.show_line_no_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
 
             self.selected_wrap_line = tk.StringVar(value=str(settings["otherSettings"]["wrapLines"]).lower())
             self.wrap_line_val = ttk.Checkbutton(self.pref_window, text="Wrap text", variable=self.selected_wrap_line, onvalue="true", offvalue="false")
-
             self.wrap_line_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
 
             self.selected_show_active_line = tk.StringVar(value=str(settings["otherSettings"]["highlightActiveLine"]).lower())
             self.show_active_line_val = ttk.Checkbutton(self.pref_window, text="Highlight active line", variable=self.selected_show_active_line, onvalue="true", offvalue="false")
-
             self.show_active_line_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
 
             self.selected_close_all_tabs = tk.StringVar(value=str(settings["otherSettings"]["closeAllTabs"]).lower())
             self.close_all_tabs_val = ttk.Checkbutton(self.pref_window, text="Close all tabs", variable=self.selected_close_all_tabs, onvalue="true", offvalue="false")
-
             self.close_all_tabs_val.pack(side="top", anchor="nw", padx=5, pady=self.option_pady)
 
             # Save button
             self.save_button = ttk.Button(self.pref_window, text="Save Preferences", command=self.savePreferences)
-
             self.save_button.pack(side="bottom", anchor="e", pady=10, padx=10)
 
             # Info text
             self.info_text = WrappedLabel(self.pref_window, text="Reopen Encryptext to see changes after saving.", anchor="sw", font=(settings["otherSettings"]["fontStyle"], int(round(11*font_scale_factor))))
-
             self.info_text.pack(side="bottom", anchor="n", padx=5, pady=self.option_pady, fill="x")
         elif self.win_open:
             self.pref_window.focus()
@@ -412,6 +409,7 @@ class PreferenceWindow(tk.Toplevel):
         settings["otherSettings"]["theme"] = self.selected_theme.get()
         settings["otherSettings"]["autoSave"] = self.selected_auto_save.get()
         settings["otherSettings"]["autoSaveInterval"] = max(1, min(600, self.selected_auto_save_interval_val.get()))
+        settings["otherSettings"]["markdownFormat"] = self.markdown_val.get()
         settings["otherSettings"]["language"] = self.language_val.get()
         settings["otherSettings"]["showLineNumbers"] = self.selected_show_line_no.get()
         settings["otherSettings"]["wrapLines"] = self.selected_wrap_line.get()
@@ -434,7 +432,8 @@ class PreviewWindow(tk.Toplevel):
 
             self.preview_window.title("Preview")
             self.preview_window.geometry("800x500")
-            self.preview_window.iconbitmap(getTrueFilename("app_icon.ico"))
+            if not debug:
+                self.preview_window.iconbitmap(getTrueFilename("app_icon.ico"))
             self.preview_window.protocol("WM_DELETE_WINDOW", self.closeWindow)
 
             self.win_open = True
@@ -487,7 +486,8 @@ root.title("Encryptext")
 # Resize the window (manually resizable too)
 root.geometry("800x500")
 # Change the icon
-root.iconbitmap(getTrueFilename("app_icon.ico"))
+if not debug:
+    root.iconbitmap(getTrueFilename("app_icon.ico"))
 
 """
 Variables
@@ -1198,6 +1198,21 @@ def selectWholeWord(direction: str, Event = None) -> 'str | None':
 
     return "break"
 
+def insertCharacter(char: str, Event = None) -> 'str | None':
+    current_tab = getCurrentTab()
+    if current_tab == -1:
+        return None
+
+    if textboxes[current_tab].index(tk.SEL_FIRST) != textboxes[current_tab].index(tk.SEL_LAST):
+        textboxes[current_tab].insert(tk.SEL_FIRST, char)
+        textboxes[current_tab].insert(tk.SEL_LAST, char)
+    else:
+        textboxes[current_tab].insert(tk.INSERT, char)
+
+    updatePreview()
+
+    return "break"
+
 def aboutMenu(Event = None) -> None:
     messagebox.showinfo("About Encryptext", f"Unlock a new level of security and versatility with Encryptext, the text editor designed for the modern user. Seamlessly blending essential features with modern encryption technology, Encryptext ensures your documents are safeguarded like never before.\n\nFree for everyone. Forever. ❤\n\nVersion {version}")
 
@@ -1545,9 +1560,15 @@ def captureSpecialKeys(Event = None) -> str:
     elif cur_key == "underscore" and mod_key == 5:
         decreaseFont()
     elif cur_key == "i":
-        changeToItalic()
+        if settings["otherSettings"]["markdownFormat"] == True:
+            insertCharacter("*")
+        else:
+            changeToItalic()
     elif cur_key == "b":
-        changeToBold()
+        if settings["otherSettings"]["markdownFormat"] == True:
+            insertCharacter("**")
+        else:
+            changeToBold()
     elif cur_key == "n":
         changeToNormal()
     elif cur_key == "c":
@@ -1569,6 +1590,25 @@ def captureSpecialKeys(Event = None) -> str:
 
     return "break"
 
+def captureMultiCharacterInsertion(Event = None) -> str:
+    cur_key = Event.keysym
+    mod_key = Event.state
+
+    print(cur_key)
+
+    if cur_key == "asterisk":
+        insertCharacter("*")
+    elif cur_key == "underscore":
+        insertCharacter("_")
+    elif cur_key == "quoteright":
+        insertCharacter("'")
+    elif cur_key == "quotedbl":
+        insertCharacter('"')
+    elif cur_key == "quoteleft":
+        insertCharacter("`")
+
+    return "break"
+
 """
 Window Items
 """
@@ -1576,6 +1616,13 @@ tab_panes = ttk.Notebook(root, cursor="hand2")
 tab_panes.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 tab_panes.enable_traversal()
 tab_panes.bind("<<NotebookTabChanged>>", updatePreview) # https://stackoverflow.com/a/44092163
+
+# Bind special characters to insert at both sides of a selection
+root.bind("<*>", captureMultiCharacterInsertion)
+root.bind("<_>", captureMultiCharacterInsertion)
+root.bind("<'>", captureMultiCharacterInsertion)
+root.bind('<">', captureMultiCharacterInsertion)
+root.bind("<`>", captureMultiCharacterInsertion)
 
 # Create the first tab
 addNewTab()
